@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Diagram version="1.0" type="POSTGRES" versionMajor="9" versionMinor="1" groupSchema="false">
+<Table id="0" name="client" schema="data" database="oceansmap_obs" background="16777165">
+<Column id="1" name="client_id" type="int4" length="0" nulls="false">
+<CP name="DEFAULT_VALUE">nextval('data.client_client_id_seq'::regclass)</CP>
+</Column>
+<Column id="2" name="name" type="varchar" length="50" nulls="true"/>
+<Column id="3" name="desc" type="varchar" length="200" nulls="true"/>
+<Column id="4" name="sub_name" type="varchar" length="100" nulls="true"/>
+<Column id="5" name="last_updated" type="date" length="0" nulls="true">
+<CP name="DEFAULT_VALUE">now()</CP>
+</Column>
+</Table>
+<Table id="6" name="data_values" schema="data" database="oceansmap_obs" background="16777165">
+<Text>where the main data sits</Text>
+<Column id="7" name="data_id" type="int4" length="0" nulls="false">
+<CP name="DEFAULT_VALUE">nextval('data.data_val_data_id_seq'::regclass)</CP>
+</Column>
+<Column id="8" name="station_id" type="int4" length="0" nulls="false"/>
+<Column id="9" name="value1" type="float4" length="0" nulls="true"/>
+<Column id="10" name="sensor_id" type="int4" length="0" nulls="true"/>
+<Column id="11" name="depth" type="int4" length="0" nulls="true">
+<CP name="DEFAULT_VALUE">0</CP>
+</Column>
+<Column id="12" name="depth_units" type="varchar" length="15" nulls="true">
+<CP name="DEFAULT_VALUE">'m'::character varying</CP>
+</Column>
+<Column id="13" name="collection_date" type="timestamp" length="0" nulls="true"/>
+<Column id="14" name="value2" type="float4" length="0" nulls="true"/>
+<Column id="15" name="value3" type="float4" length="0" nulls="true"/>
+<Column id="16" name="value4" type="float4" length="0" nulls="true"/>
+<Column id="17" name="value5" type="float4" length="0" nulls="true"/>
+<Column id="18" name="value6" type="float4" length="0" nulls="true"/>
+<Column id="19" name="value7" type="float4" length="0" nulls="true"/>
+<Column id="20" name="value8" type="float4" length="0" nulls="true"/>
+<Column id="21" name="value9" type="float4" length="0" nulls="true"/>
+<Column id="22" name="value10" type="float4" length="0" nulls="true"/>
+<Column id="23" name="value11" type="float4" length="0" nulls="true"/>
+<Column id="24" name="value12" type="float4" length="0" nulls="true"/>
+<Column id="25" name="value13" type="float4" length="0" nulls="true"/>
+<Column id="26" name="value14" type="float4" length="0" nulls="true"/>
+<Column id="27" name="value15" type="float4" length="0" nulls="true"/>
+<Column id="28" name="value16" type="float4" length="0" nulls="true"/>
+<Column id="29" name="value17" type="float4" length="0" nulls="true"/>
+<Column id="30" name="value18" type="float4" length="0" nulls="true"/>
+<Column id="31" name="value19" type="float4" length="0" nulls="true"/>
+<Column id="32" name="value20" type="float4" length="0" nulls="true"/>
+<Column id="33" name="value21" type="float4" length="0" nulls="true"/>
+<Column id="34" name="value22" type="float4" length="0" nulls="true"/>
+<Column id="35" name="value23" type="float4" length="0" nulls="true"/>
+</Table>
+<Table id="36" name="deployment_reference" schema="data" database="oceansmap_obs" background="16777165">
+<Column id="37" name="deployment_id" type="int4" length="0" nulls="false">
+<CP name="DEFAULT_VALUE">nextval('data.deployment_ref_deployment_id_seq'::regclass)</CP>
+</Column>
+<Column id="38" name="start_date" type="timestamp" length="0" nulls="true"/>
+<Column id="39" name="end_date" type="time" length="0" nulls="true"/>
+<Column id="40" name="description" type="varchar" length="200" nulls="true"/>
+</Table>
+<Table id="41" name="metadata" schema="data" database="oceansmap_obs" background="16777165">
+<Column id="42" name="start_date" type="timestamp" length="0" nulls="true"/>
+<Column id="43" name="end_date" type="timestamp" length="0" nulls="true"/>
+<Column id="44" name="num_days_active" type="int4" length="0" nulls="true"/>
+<Column id="45" name="description" type="varchar" length="500" nulls="true"/>
+<Column id="46" name="operator" type="varchar" length="100" nulls="true"/>
+<Column id="47" name="station_id" type="int4" length="0" nulls="true"/>
+<Column id="48" name="par_id" type="int4" length="0" nulls="true"/>
+<Column id="49" name="issues" type="varchar" length="200" nulls="true"/>
+<Column id="50" name="metadata_id" type="int4" length="0" nulls="false">
+<CP name="DEFAULT_VALUE">nextval('data.metadata_metadata_id_seq'::regclass)</CP>
+</Column>
+</Table>
+<Table id="51" name="paramters" schema="data" database="oceansmap_obs" background="16777165">
+<Text>links to the value number in the data table</Text>
+<Column id="52" name="parameter_name" type="varchar" length="75" nulls="true"/>
+<Column id="53" name="units" type="varchar" length="15" nulls="true"/>
+<Column id="54" name="par_id" type="int4" length="0" nulls="false">
+<CP name="DEFAULT_VALUE">nextval('data.paramters_par_id_seq'::regclass)</CP>
+</Column>
+<Column id="55" name="par_desc" type="varchar" length="200" nulls="true"/>
+<Storage name="TempTable" value="false"/>
+</Table>
+<Table id="56" name="sensors" schema="data" database="oceansmap_obs" background="16777165">
+<Text>list of types of sensors, optional</Text>
+<Column id="57" name="sensor_type" type="varchar" length="100" nulls="true"/>
+<Column id="58" name="sensor_name" type="varchar" length="100" nulls="true"/>
+<Column id="59" name="calibration_date" type="date" length="0" nulls="true"/>
+<Column id="60" name="accuracy" type="float4" length="0" nulls="true"/>
+<Column id="61" name="sensor_id" type="int4" length="0" nulls="false">
+<CP name="DEFAULT_VALUE">nextval('data.sensors_sensor_id_seq'::regclass)</CP>
+</Column>
+</Table>
+<Table id="62" name="stations" schema="data" database="oceansmap_obs" background="16777165">
+<Column id="63" name="station_id" type="int4" length="0" nulls="false">
+<CP name="DEFAULT_VALUE">nextval('data.stations_station_id_seq'::regclass)</CP>
+</Column>
+<Column id="64" name="station_name" type="varchar" length="15" nulls="true"/>
+<Column id="65" name="alt_name" type="varchar" length="50" nulls="true"/>
+<Column id="66" name="station_desc" type="varchar" length="500" nulls="true"/>
+<Column id="67" name="location_type" type="varchar" length="50" nulls="true">
+<CP name="DEFAULT_VALUE">'absolute'::character varying</CP>
+</Column>
+<Column id="68" name="lat_loc" type="numeric" length="0" nulls="true">
+<CP name="PRECISION">0</CP>
+<CP name="SCALE">0</CP>
+</Column>
+<Column id="69" name="lon_loc" type="numeric" length="0" nulls="true">
+<CP name="PRECISION">0</CP>
+<CP name="SCALE">0</CP>
+</Column>
+<Column id="70" name="client_id" type="int4" length="0" nulls="false">
+<CP name="DEFAULT_VALUE">1</CP>
+</Column>
+<Column id="71" name="station_geom" type="geometry" length="0" nulls="true"/>
+<Column id="72" name="deployment_id" type="int4" length="0" nulls="true"/>
+<Column id="73" name="start_date" type="time" length="0" nulls="true"/>
+<Column id="74" name="end_date" type="time" length="0" nulls="true"/>
+<Column id="75" name="string_name_id" type="varchar" length="20" nulls="true"/>
+<Column id="76" name="notes" type="varchar" length="200" nulls="true"/>
+<Column id="77" name="issues" type="varchar" length="200" nulls="true"/>
+<Column id="78" name="locationid" type="int4" length="0" nulls="true">
+<CP name="DEFAULT_VALUE">1</CP>
+</Column>
+</Table>
+<Relation id="79" name="sensor_date_rel" cardinality="-2" identifying="true" nulls="false">
+<FK>61</FK>
+<PK>10</PK>
+<Text/>
+</Relation>
+<Relation id="80" name="station_data_rel" cardinality="-2" identifying="true" nulls="false">
+<FK>63</FK>
+<PK>8</PK>
+<Text/>
+</Relation>
+<Relation id="81" name="station_client_rel" cardinality="-2" identifying="true" nulls="false">
+<FK>70</FK>
+<PK>1</PK>
+<Text/>
+</Relation>
+<Relation id="82" name="deployment_stations_rel" cardinality="-2" identifying="true" nulls="false">
+<FK>37</FK>
+<PK>72</PK>
+<Text/>
+</Relation>
+<Relation id="83" name="metadata_station_rel" cardinality="-2" identifying="true" nulls="false">
+<FK>47</FK>
+<PK>63</PK>
+<Text/>
+</Relation>
+<Index table="62" name="station_id_idx1" schema="data" database="oceansmap_obs">
+<Option name="unique" class="Boolean" value="false"/>
+<IndexColumn id="63" sequence="0" ascending="true"/>
+</Index>
+<Constraint table="0" name="client_key_pk" type="PrimKey">
+<Option name="tablespace" class="String" value="&lt;DEFAULT&gt;"/>
+<ConstraintColumn id="1"/>
+</Constraint>
+<Constraint table="6" name="data_val__id_pk" type="PrimKey">
+<Option name="tablespace" class="String" value="&lt;DEFAULT&gt;"/>
+<ConstraintColumn id="7"/>
+</Constraint>
+<Constraint table="36" name="deployment_id_pk" type="PrimKey">
+<Option name="tablespace" class="String" value="&lt;DEFAULT&gt;"/>
+<ConstraintColumn id="37"/>
+</Constraint>
+<Constraint table="51" name="par_id_pk" type="PrimKey">
+<Option name="tablespace" class="String" value="&lt;DEFAULT&gt;"/>
+<ConstraintColumn id="54"/>
+</Constraint>
+<Constraint table="56" name="sensor_id_pk" type="PrimKey">
+<Option name="tablespace" class="String" value="&lt;DEFAULT&gt;"/>
+<ConstraintColumn id="61"/>
+</Constraint>
+<Constraint table="62" name="pk_station" type="PrimKey">
+<Option name="tablespace" class="String" value="&lt;DEFAULT&gt;"/>
+<ConstraintColumn id="63"/>
+</Constraint>
+<Sheet name="obs_pg" id="84" disp_at="true" disp_ph="true" disp_co="true" disp_rn="true">
+<Place id="81" visible="true" options="209.31596071696916,70.36302793217828,180.0,300.0,239.31596071696916,480.066673415192,160.0,110.0,2,300.0,371.0,300.0,480.066673415192">508,-6,0,0</Place>
+<Place id="36" visible="true">29,430,160,90</Place>
+<Place id="80" visible="true" options="209.31596071696916,70.36302793217828,180.0,300.0,489.39696961967013,60.0,170.0,530.0,4,389.0,210.0,430.0,210.0,430.0,210.0,489.0,210.0">501,-10,0,0</Place>
+<Place id="6" visible="true">489,60,170,530</Place>
+<Place id="83" visible="true" options="19.89949493661166,69.23036440710332,160.0,180.0,209.31596071696916,70.36302793217828,180.0,300.0,3,90.0,249.0,90.0,300.0,209.0,300.0">652,-10,0,0</Place>
+<Place id="82" visible="true" options="29.813325360732115,430.32919628398196,160.0,90.0,209.31596071696916,70.36302793217828,180.0,300.0,3,100.0,430.0,100.0,340.0,209.0,340.0">356,2,0,0</Place>
+<Place id="56" visible="true">699,120,180,130</Place>
+<Place id="62" visible="true">209,70,180,300</Place>
+<Place id="51" visible="true">699,460,190,121</Place>
+<Place id="79" visible="true" options="699.4974746830582,120.0,180.0,130.0,489.39696961967013,60.0,170.0,530.0,3,780.0,250.0,780.0,330.0,659.3969696196701,330.0">740,10,0,0</Place>
+<Place id="0" visible="true">239,480,160,110</Place>
+<Place id="41" visible="true">19,69,160,180</Place>
+</Sheet>
+<Settings sheet="84" zoom="1.0"/>
+</Diagram>
