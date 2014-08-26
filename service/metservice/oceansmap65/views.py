@@ -16,6 +16,8 @@ import psycopg2 as pgs
 #from django.utils import simplejson as json
 import json
 from django.core.serializers.json import DjangoJSONEncoder
+#from djgeojson.serializers import Serializer as GeoJSONSerializer
+import ordereddict 
 import traceback, os.path
 
 # import matplotlib
@@ -148,30 +150,50 @@ def getstations(request):
         curs = pgconn.cursor()
     except:
         return HttpResponse("Sorry, Cannot Connect to Data.")
-    
-    
-    dist_query = ''
-    dist_order = ''
-    sql = ''
-    stationData = []
+        
 
+    stationData = []
+    #just anadarko now
     clientID = 1;
-    curs.execute("select station_id,station_name as mooringname, string_name_id as stationname,lon_loc,lat_loc,start_date,end_date,station_desc from data.stations where client_id="+str(clientID)+" order by mooringname;")
     
+    curs.execute("select station_id, station_name, string_name_id, lat_loc, lon_loc, start_date, end_date, station_desc from data.stations where client_id="+str(clientID)+" order by station_name;")
     
-    stationData = json.dumps(curs.fetchall(), cls=DjangoJSONEncoder)
+    rows_serial = json.dumps(curs.fetchall(), cls=DjangoJSONEncoder);
+    rows_json = json.loads(rows_serial)
+
+    objects_geojson = []
+    collection_list = ordereddict.OrderedDict()
+    for row in rows_json:
+        d = ordereddict.OrderedDict()
+        d['id'] = row[0]
+        d['type']= 'Feature'
+        p = ordereddict.OrderedDict()
+        p['mooringname'] = row[1]
+        p['station_name'] = row[2]
+        p['start'] = row[5]
+        p['end'] = row[6]
+        p['desc'] = row[7]
+        d['properties'] = p;
+        g= ordereddict.OrderedDict()
+        g['type'] = 'Point'
+        g['coordinates'] = [row[4],row[3]]
+        d['geometry']=g;
+        objects_geojson.append(d)
+    
+    collection_list['type']= "FeatureCollection";
+    collection_list['features'] =objects_geojson;
+    stationData = json.dumps(collection_list)
 
     try:            
         if(attr == 'and'):
             clientID = 1;
-            curs.execute("select station_id,station_name as mooringname, string_name_id as stationname,lon_loc,lat_loc,start_date,end_date,station_desc from data.stations where client_id="+str(clientID)+" order by mooringname;")
-            #json_list = #json.loads(json.dumps(curs.fetchall()))
-            #stationData = ast.literal_eval(simplejson.dumps(curs.fetchall()))
-            #stationData ="select station_id,station_name as mooringname, string_name_id as stationname,lon_loc,lat_loc,start_date,end_date,station_desc from data.stations where client_id="+str(clientID)+" order by mooringname;" 
+            #curs.execute("select station_id,station_name as mooringname, string_name_id as stationname,lon_loc,lat_loc,start_date,end_date,station_desc from data.stations where client_id="+str(clientID)+" order by mooringname;")
+            #stationData = GeoJSONSerializer().serialize(curs.fetchall(), use_natural_keys=True);
+            #stationData = json.dumps(curs.fetchall(), cls=DjangoJSONEncoder);
 
     
     except Exception, Err:
-        stationData.append("Sorry, Cannot return stations. ")
+        stationData.append("Sorry, Cannot return sdf. ")
         return HttpResponse(str(stationData))
     finally:
         curs.close()
