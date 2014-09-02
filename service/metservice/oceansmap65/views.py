@@ -156,7 +156,7 @@ def getstations(request):
     #just anadarko now
     clientID = 1;
     
-    curs.execute("select station_id, station_name, string_name_id, lat_loc, lon_loc, start_date, end_date, station_desc from data.stations where client_id="+str(clientID)+" order by station_name;")
+    curs.execute("select station_id, station_name, string_name_id, lat_loc, lon_loc, start_date, end_date, station_desc,deployment_id from data.stations where start_date is not null and client_id="+str(clientID)+" order by station_name;")
     
     rows_serial = json.dumps(curs.fetchall(), cls=DjangoJSONEncoder);
     rows_json = json.loads(rows_serial)
@@ -173,6 +173,7 @@ def getstations(request):
         p['start'] = row[5]
         p['end'] = row[6]
         p['desc'] = row[7]
+        p['deploy'] = row[8]
         d['properties'] = p;
         g= ordereddict.OrderedDict()
         g['type'] = 'Point'
@@ -193,7 +194,7 @@ def getstations(request):
 
     
     except Exception, Err:
-        stationData.append("Sorry, Cannot return sdf. ")
+        stationData.append("Sorry, Cannot return stations. ")
         return HttpResponse(str(stationData))
     finally:
         curs.close()
