@@ -153,44 +153,41 @@ def getstations(request):
         
 
     stationData = []
-    #just anadarko now
-    clientID = 1;
     
-    curs.execute("select station_id, station_name, string_name_id, lat_loc, lon_loc, start_date, end_date, station_desc,deployment_id from data.stations where start_date is not null and client_id="+str(clientID)+" order by station_name;")
-    
-    rows_serial = json.dumps(curs.fetchall(), cls=DjangoJSONEncoder);
-    rows_json = json.loads(rows_serial)
-
-    objects_geojson = []
-    collection_list = ordereddict.OrderedDict()
-    for row in rows_json:
-        d = ordereddict.OrderedDict()
-        d['id'] = row[0]
-        d['type']= 'Feature'
-        p = ordereddict.OrderedDict()
-        p['mooringname'] = row[1]
-        p['station_name'] = row[2]
-        p['start'] = row[5]
-        p['end'] = row[6]
-        p['desc'] = row[7]
-        p['deploy'] = row[8]
-        d['properties'] = p;
-        g= ordereddict.OrderedDict()
-        g['type'] = 'Point'
-        g['coordinates'] = [row[4],row[3]]
-        d['geometry']=g;
-        objects_geojson.append(d)
-    
-    collection_list['type']= "FeatureCollection";
-    collection_list['features'] =objects_geojson;
-    stationData = json.dumps(collection_list)
-
     try:            
         if(attr == 'and'):
+            #just anadarko now
             clientID = 1;
-            #curs.execute("select station_id,station_name as mooringname, string_name_id as stationname,lon_loc,lat_loc,start_date,end_date,station_desc from data.stations where client_id="+str(clientID)+" order by mooringname;")
-            #stationData = GeoJSONSerializer().serialize(curs.fetchall(), use_natural_keys=True);
-            #stationData = json.dumps(curs.fetchall(), cls=DjangoJSONEncoder);
+            
+            curs.execute("select station_id, station_name, string_name_id, lat_loc, lon_loc, start_date, end_date, station_desc,deployment_id,notes from data.stations where start_date is not null and client_id="+str(clientID)+" order by station_name;")
+            
+            rows_serial = json.dumps(curs.fetchall(), cls=DjangoJSONEncoder);
+            rows_json = json.loads(rows_serial)
+
+            objects_geojson = []
+            collection_list = ordereddict.OrderedDict()
+            for row in rows_json:
+                d = ordereddict.OrderedDict()
+                d['id'] = row[0]
+                d['type']= 'Feature'
+                p = ordereddict.OrderedDict()
+                p['mooringname'] = row[1]
+                p['station_name'] = row[2]
+                p['start'] = row[5]
+                p['end'] = row[6]
+                p['desc'] = row[7]
+                p['deploy'] = row[8]
+                p['params'] = row[9]
+                d['properties'] = p;
+                g= ordereddict.OrderedDict()
+                g['type'] = 'Point'
+                g['coordinates'] = [float(row[4]),float(row[3])]
+                d['geometry']=g;
+                objects_geojson.append(d)
+            
+            collection_list['type']= "FeatureCollection";
+            collection_list['features'] =objects_geojson;
+            stationData = json.dumps(collection_list)
 
     
     except Exception, Err:
