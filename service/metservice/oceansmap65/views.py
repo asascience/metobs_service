@@ -161,7 +161,7 @@ def getstations(request):
             #just anadarko now
             clientID = 1;
             
-            curs.execute("select station_id, station_name, string_name_id, lat_loc, lon_loc, start_date, end_date, station_desc,deployment_id,notes,main_depth from data.stations where start_date is not null and client_id="+str(clientID)+" order by station_name;")
+            curs.execute("select station_id, station_name, string_name_id, lat_loc, lon_loc, start_date, end_date, station_desc,deployment_id,params,main_depth,pretty_params from data.stations where start_date is not null and client_id="+str(clientID)+" order by station_name;")
             
             rows_serial = json.dumps(curs.fetchall(), cls=DjangoJSONEncoder);
             rows_json = json.loads(rows_serial)
@@ -180,7 +180,9 @@ def getstations(request):
                 p['desc'] = row[7]
                 p['deploy'] = row[8]
                 p['params'] = row[9]
+                p['pretty_params'] = row[11]
                 p['avedepth'] = row[10]
+                p['sid'] = row[0]
                 d['properties'] = p;
                 g= ordereddict.OrderedDict()
                 g['type'] = 'Point'
@@ -296,13 +298,156 @@ def getvertprofile(request):
 #===============================================================================
 def gettimeseries(request):
     ##sensor dictionary
-    paramaterDic = {'current_speed':['m/s',1,'Water Speed'],'current_direction':['degrees',2,'Water Direction'],'atmospheric_pressure':['mBar',3,'Mean Atmospheric Pressure'],'humidity':['%',4,'Mean Humidity'],'rain':['mm',5,'Rain Amount'],'air_temp':['C',6,'Mean Air Temperature'],'wind_speed_10m_max':['m/s',7,'Maximum 10m Wind Speed'],'wind_speed_1_5m_max':['m/s',8,'Maximum 1.5m Wind Speed'],'wind_direction_10m':['TN',9,'Mean 10m Wind Direction'],'wind_direction_1_5m':['TN',10,'Mean 1.5m Wind Direction'],'wind_speed_10m_mean':['m/s',11,'Mean 10m Wind Speed'],'wind_speed_1_5m_mean':['m/s',12,'Mean 1.5m Wind Speed'],'vert_wind_speed_max':['m/s',13,'Maximum Vertical Wind Speed'],'vert_wind_speed_mean':['m/s',14,'Mean Vertical Wind Speed'],'vert_wind_speed_min':['m/s',15,'Minimum Vertical Wind Speed'],'salinity':['psu',16,'Water Salinity'],'sound_velocity':['m/s',17,'Sound Velocity'],'density':['kg/m3',18,'Density'],'turbidity':['NTU',19,'Turbidity'],'water_temp':['C',20,'Mean Water Temperature'],'height':['m',21,'HEIGHT'],'voltage':['V',22,'Voltage from Tide'],'tide_height':['m',23,'Tide Height']}
+    paramaterDic = {'current_speed':['m/s',1,'Water Speed'],'current_direction':['degrees from north',2,'Water Direction'],'atmospheric_pressure':['mBar',3,'Mean Atmospheric Pressure'],'humidity':['%',4,'Mean Humidity'],'rain':['mm',5,'Rain Amount'],'air_temp':['C',6,'Mean Air Temperature'],'wind_speed_10m_max':['m/s',7,'Maximum 10m Wind Speed'],'wind_speed_1_5m_max':['m/s',8,'Maximum 1.5m Wind Speed'],'wind_direction_10m':['TN',9,'Mean 10m Wind Direction'],'wind_direction_1_5m':['TN',10,'Mean 1.5m Wind Direction'],'wind_speed_10m_mean':['m/s',11,'Mean 10m Wind Speed'],'wind_speed_1_5m_mean':['m/s',12,'Mean 1.5m Wind Speed'],'vert_wind_speed_max':['m/s',13,'Maximum Vertical Wind Speed'],'vert_wind_speed_mean':['m/s',14,'Mean Vertical Wind Speed'],'vert_wind_speed_min':['m/s',15,'Minimum Vertical Wind Speed'],'salinity':['psu',16,'Water Salinity'],'sound_velocity':['m/s',17,'Sound Velocity'],'density':['kg/m3',18,'Density'],'turbidity':['NTU',19,'Turbidity'],'water_temp':['C',20,'Mean Water Temperature'],'height':['m',21,'HEIGHT'],'voltage':['V',22,'Voltage from Tide'],'tide_height':['m',23,'Tide Height']}
     
     attr = request.GET['attr']
     #depthindex = request.GET['depthindex']
     stationID = request.GET['st']
     startTime = request.GET['starttime'].upper()
     endTime = request.GET['endtime'].upper()
+    mode = request.GET['y']
+    
+    #check for multiple properties
+    #this is to make the sql query look something like value1,value2,value3
+    paramlist = str(request.GET['param']).split(',');
+    param = '';
+    realparamlist = [];
+    if(len(paramlist)>0):
+        for v in paramlist:
+            if(paramaterDic.get(str(v).lower())):
+                realparamlist.insert(len(realparamlist),v);
+                param = param + ',value'+ str(paramaterDic.get(str(v).lower())[1]);
+    else:
+        if(paramaterDic.get(str(v).lower())):
+            param = param +',value'+ str(paramaterDic.get(str(request.GET['param']).lower())[1]);
+    
+    #===========================================================================
+    # DB Connection.
+    #===========================================================================
+    try:
+        pgconn = pgs.connect(user="postgres",password="PinkPanther#3",host="localhost",port='5432',dbname="oceansmap_obs")
+        curs = pgconn.cursor()
+    except:
+        return HttpResponse("Sorry, Cannot Connect to Data.")
+        
+
+    tsData = []
+    
+    #just anadarko now
+    clientID = 1;
+    
+    try:
+        if(param == ''):
+            tsData = "Sorry, no parameters found.";
+
+        elif(str(attr).lower() == 'and'):
+            
+            curs.execute("select collection_date, depth "+param+ " from data.data_values where station_id="+stationID+" and collection_date > '"+ startTime +"' and collection_date < '"+ endTime+ "';");
+                    
+            rows_serial = json.dumps(curs.fetchall(), cls=DjangoJSONEncoder);
+            rows_json = json.loads(rows_serial)
+            
+            if(len(rows_json)>1):
+                #this is to format json based on the number of parameters
+                if(len(realparamlist)>1):
+                    numP = 0;
+                    collection_list = ordereddict.OrderedDict();
+                    profile = ordereddict.OrderedDict();
+                    profile['id'] = stationID;
+
+                    for a in realparamlist:
+                        objects_output = [];
+
+                        for row in rows_json:            
+                            g= ordereddict.OrderedDict();
+                            g['time'] = row[0];
+                            g['depth'] = row[1];
+
+                            if(row[numP+2] is None):
+                                continue
+                                #g['value'] = None
+                            else:
+                                g['value'] = float(row[numP+2])
+                            
+                            #shrink in up a bit
+                            #d = ordereddict.OrderedDict()
+                            #g['depth'] = row[1]
+                            #d['result']=g;
+                            objects_output.append(g)
+                        
+                        profileblock = ordereddict.OrderedDict();
+                        profileblock['parametername'] = paramaterDic.get(str(a).lower())[2]
+                        profileblock['parameterunits'] = paramaterDic.get(str(a).lower())[0]
+                        profileblock['data'] = objects_output
+                        
+                        profile[a] =profileblock;
+                        numP = numP+1;
+                    
+                    collection_list['profile']= profile;
+                    tsData = json.dumps(collection_list)
+
+                else:
+                    objects_output = []
+                    numP = 0;
+                    collection_list = ordereddict.OrderedDict()
+                    profile = ordereddict.OrderedDict()
+                    profile['id'] = stationID
+
+                    for row in rows_json:            
+                        g= ordereddict.OrderedDict()
+                        g['time'] = row[0]
+                        g['depth'] = row[1]
+                        if(row[numP+2] is None):
+                            continue
+                            #g['value'] = None
+                        else:
+                            g['value'] = float(row[2])
+                        
+                        #shrink in up a bit
+                        #d = ordereddict.OrderedDict()
+                        #g['depth'] = row[1]
+                        #d['result']=g;
+                        objects_output.append(g)
+                    
+                    profileblock=ordereddict.OrderedDict();
+                    profileblock['parametername']= paramaterDic.get(str(request.GET['param']).lower())[2]
+                    profileblock['parameterunits']= paramaterDic.get(str(request.GET['param']).lower())[0]
+                    profileblock['data'] = objects_output
+                    
+                    profile[request.GET['param']] =profileblock;
+                    collection_list['profile']= profile;
+                    tsData = json.dumps(collection_list)
+            
+        
+        else:
+            tsData = "No data for this client"
+    
+    except Exception, Err:
+        tsData = "Sorry, Cannot return time series. ";
+        return HttpResponse(str(tsData))
+    finally:
+        curs.close()
+        pgconn.close()
+        if mode == 'surface':
+            if type(response) == str:
+                return HttpResponse(response)
+            else:
+                return response
+        else:
+            return HttpResponse(str(tsData))
+
+
+#===============================================================================
+# Request time series for start and end date profile
+#===============================================================================
+def value(request):
+    ##sensor dictionary
+    paramaterDic = {'current_speed':['m/s',1,'Water Speed'],'current_direction':['degrees from north',2,'Water Direction'],'atmospheric_pressure':['mBar',3,'Mean Atmospheric Pressure'],'humidity':['%',4,'Mean Humidity'],'rain':['mm',5,'Rain Amount'],'air_temp':['C',6,'Mean Air Temperature'],'wind_speed_10m_max':['m/s',7,'Maximum 10m Wind Speed'],'wind_speed_1_5m_max':['m/s',8,'Maximum 1.5m Wind Speed'],'wind_direction_10m':['TN',9,'Mean 10m Wind Direction'],'wind_direction_1_5m':['TN',10,'Mean 1.5m Wind Direction'],'wind_speed_10m_mean':['m/s',11,'Mean 10m Wind Speed'],'wind_speed_1_5m_mean':['m/s',12,'Mean 1.5m Wind Speed'],'vert_wind_speed_max':['m/s',13,'Maximum Vertical Wind Speed'],'vert_wind_speed_mean':['m/s',14,'Mean Vertical Wind Speed'],'vert_wind_speed_min':['m/s',15,'Minimum Vertical Wind Speed'],'salinity':['psu',16,'Water Salinity'],'sound_velocity':['m/s',17,'Sound Velocity'],'density':['kg/m3',18,'Density'],'turbidity':['NTU',19,'Turbidity'],'water_temp':['C',20,'Mean Water Temperature'],'height':['m',21,'HEIGHT'],'voltage':['V',22,'Voltage from Tide'],'tide_height':['m',23,'Tide Height']}
+    
+    attr = request.GET['attr']
+    #depthindex = request.GET['depthindex']
+    stationID = request.GET['st']
+    startTime = request.GET['nowtime'].upper()
     mode = request.GET['y']
     
     #check for multiple properties
@@ -338,19 +483,22 @@ def gettimeseries(request):
     
     #this is to format json based on the number of parameters
     if(len(realparamlist)>1):
+        numP = 0;
+        collection_list = ordereddict.OrderedDict();
+        profile = ordereddict.OrderedDict();
+        profile['id'] = stationID;
+        
         for a in realparamlist:
-            objects_output = []
-            collection_list = ordereddict.OrderedDict()
-            profile = ordereddict.OrderedDict()
-            profile['id'] = stationID
+            objects_output = [];
 
             for row in rows_json:            
-                g= ordereddict.OrderedDict()
-                g['time'] = row[0]
-                if(row[2] == None):
+                g= ordereddict.OrderedDict();
+                g['time'] = row[0];
+
+                if(row[numP+2] == None):
                     g['value'] = None
                 else:
-                    g['value'] = float(row[2])
+                    g['value'] = float(row[numP+2])
                 
                 #shrink in up a bit
                 #d = ordereddict.OrderedDict()
@@ -358,12 +506,13 @@ def gettimeseries(request):
                 #d['result']=g;
                 objects_output.append(g)
             
-            profileblock=ordereddict.OrderedDict();
-            profileblock['parametername']= paramaterDic.get(str(request.GET['param']).lower())[2]
-            profileblock['parameterunits']= paramaterDic.get(str(request.GET['param']).lower())[0]
+            profileblock = ordereddict.OrderedDict();
+            profileblock['parametername'] = paramaterDic.get(str(a).lower())[2]
+            profileblock['parameterunits'] = paramaterDic.get(str(a).lower())[0]
             profileblock['data'] = objects_output
             
-            profile[request.GET['param']] =profileblock;
+            profile[a] =profileblock;
+            numP = numP+1;
         
         collection_list['profile']= profile;
         tsData = json.dumps(collection_list)
@@ -423,5 +572,4 @@ def gettimeseries(request):
                 return response
         else:
             return HttpResponse(str(tsData))
-
 

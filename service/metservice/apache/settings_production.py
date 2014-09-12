@@ -95,10 +95,41 @@ TEMPLATE_LOADERS = (
 
 MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+)
+
+CORS_ORIGIN_ALLOW_ALL = True
+
+CORS_ORIGIN_WHITELIST = ()
+
+CORS_ALLOW_HEADERS = (
+        'x-requested-with',
+        'content-type',
+        'accept',
+        'origin',
+        'authorization',
+        'x-csrftoken'
+    )
+
+CORS_ALLOW_CREDENTIALS = True
+
+ROOT_URLCONF = 'metservice.urls'
+
+INSTALLED_APPS = (
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.sites',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'django.contrib.admin',
+    'corsheaders',
+    'django.contrib.admindocs',
+    'oceansmap65'
 )
 
 ROOT_URLCONF = 'metservice.apache.urls_production'
@@ -112,18 +143,6 @@ TEMPLATE_DIRS = (
 )
 
 PROJECT_ROOT = "C:/projects/metobs_service/service/metservice"
-
-INSTALLED_APPS = (
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.sites',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'django.contrib.admin',
-    'django.contrib.admindocs',
-    'metservice.oceansmap65',
-)
 
 # A sample logging configuration. The only tangible logging
 # performed by this configuration is to send an email to

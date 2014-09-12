@@ -35,6 +35,7 @@ urlpatterns = patterns('', #'',
     url(r'^getstations/$', 'metservice.oceansmap65.views.getstations'),
     url(r'^gettimeseries/$', 'metservice.oceansmap65.views.gettimeseries'),
     url(r'^getvertprofile/$', 'metservice.oceansmap65.views.getvertprofile'),
+    url(r'^getvertprofile/$', 'metservice.oceansmap65.views.getvalue'),
     #url(r'^metobs/getcruises/$','metservice.oceansmap65.views.getcruises'),
     #url(r'^ctd_j/getcruises/$','dwh_webservice.ctd_j.views.getcruises'),
     
