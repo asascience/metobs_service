@@ -161,7 +161,7 @@ def getstations(request):
             #just anadarko now
             clientID = 1;
             
-            curs.execute("select station_id, station_name, string_name_id, lat_loc, lon_loc, start_date, end_date, station_desc,deployment_id,params,main_depth,pretty_params from data.stations where start_date is not null and client_id="+str(clientID)+" order by station_name;")
+            curs.execute("select station_id, station_name, string_name_id, lat_loc, lon_loc, start_date, end_date, station_desc,deployment_id,params,main_depth,pretty_params,depth_var from data.stations where start_date is not null and client_id="+str(clientID)+" order by station_name;")
             
             rows_serial = json.dumps(curs.fetchall(), cls=DjangoJSONEncoder);
             rows_json = json.loads(rows_serial)
@@ -182,6 +182,7 @@ def getstations(request):
                 p['params'] = row[9]
                 p['pretty_params'] = row[11]
                 p['avedepth'] = row[10]
+                p['depth_values'] = row[12]
                 p['sid'] = row[0]
                 d['properties'] = p;
                 g= ordereddict.OrderedDict()
@@ -298,7 +299,7 @@ def getvertprofile(request):
 #===============================================================================
 def gettimeseries(request):
     ##sensor dictionary
-    paramaterDic = {'current_speed':['m/s',1,'Water Speed'],'current_direction':['degrees from north',2,'Water Direction'],'atmospheric_pressure':['mBar',3,'Mean Atmospheric Pressure'],'humidity':['%',4,'Mean Humidity'],'rain':['mm',5,'Rain Amount'],'air_temp':['C',6,'Mean Air Temperature'],'wind_speed_10m_max':['m/s',7,'Maximum 10m Wind Speed'],'wind_speed_1_5m_max':['m/s',8,'Maximum 1.5m Wind Speed'],'wind_direction_10m':['TN',9,'Mean 10m Wind Direction'],'wind_direction_1_5m':['TN',10,'Mean 1.5m Wind Direction'],'wind_speed_10m_mean':['m/s',11,'Mean 10m Wind Speed'],'wind_speed_1_5m_mean':['m/s',12,'Mean 1.5m Wind Speed'],'vert_wind_speed_max':['m/s',13,'Maximum Vertical Wind Speed'],'vert_wind_speed_mean':['m/s',14,'Mean Vertical Wind Speed'],'vert_wind_speed_min':['m/s',15,'Minimum Vertical Wind Speed'],'salinity':['psu',16,'Water Salinity'],'sound_velocity':['m/s',17,'Sound Velocity'],'density':['kg/m3',18,'Density'],'turbidity':['NTU',19,'Turbidity'],'water_temp':['C',20,'Mean Water Temperature'],'height':['m',21,'HEIGHT'],'voltage':['V',22,'Voltage from Tide'],'tide_height':['m',23,'Tide Height']}
+    paramaterDic = {'current_speed':['m/s',1,'Water Speed'],'current_direction':['degrees from north',2,'Water Direction'],'atmospheric_pressure':['mBar',3,'Mean Atmospheric Pressure'],'humidity':['%',4,'Mean Humidity'],'rain':['mm',5,'Rain Amount'],'air_temp':['C',6,'Mean Air Temperature'],'wind_speed_10m_max':['m/s',7,'Maximum 10m Wind Speed'],'wind_speed_1_5m_max':['m/s',8,'Maximum 1.5m Wind Speed'],'wind_direction_10m':['TN',9,'Mean 10m Wind Direction'],'wind_direction_1_5m':['TN',10,'Mean 1.5m Wind Direction'],'wind_speed_10m_mean':['m/s',11,'Mean 10m Wind Speed'],'wind_speed_1_5m_mean':['m/s',12,'Mean 1.5m Wind Speed'],'vert_wind_speed_max':['m/s',13,'Maximum Vertical Wind Speed'],'vert_wind_speed_mean':['m/s',14,'Mean Vertical Wind Speed'],'vert_wind_speed_min':['m/s',15,'Minimum Vertical Wind Speed'],'salinity':['psu',16,'Water Salinity'],'sound_velocity':['m/s',17,'Sound Velocity'],'density':['kg/m3',18,'Density'],'turbidity':['NTU',19,'Turbidity'],'water_temp':['C',20,'Mean Water Temperature'],'height':['m',21,'Height'],'voltage':['V',22,'Voltage from Tide'],'tide_height':['m',23,'Tide Height'],'wave_height':['m',24,'Wave Height'],'wave_period':['seconds',25,'Wave Period'],'wave_direction':['d from north',26,'Wave Direction']}
     
     attr = request.GET['attr']
     #depthindex = request.GET['depthindex']
@@ -332,18 +333,17 @@ def gettimeseries(request):
         
 
     tsData = []
-    
-    #just anadarko now
-    clientID = 1;
-    
+             
     try:
         if(param == ''):
             tsData = "Sorry, no parameters found.";
 
         elif(str(attr).lower() == 'and'):
-            
+            #just anadarko now
+            clientID = 1;
+
             curs.execute("select collection_date, depth "+param+ " from data.data_values where station_id="+stationID+" and collection_date > '"+ startTime +"' and collection_date < '"+ endTime+ "';");
-                    
+                            
             rows_serial = json.dumps(curs.fetchall(), cls=DjangoJSONEncoder);
             rows_json = json.loads(rows_serial)
             
@@ -364,6 +364,10 @@ def gettimeseries(request):
                             g['depth'] = row[1];
 
                             if(row[numP+2] is None):
+                                continue
+                            elif(row[numP+2] == -999):
+                                continue
+                            elif(row[numP+2] == -9999):
                                 continue
                                 #g['value'] = None
                             else:
@@ -400,6 +404,11 @@ def gettimeseries(request):
                         if(row[numP+2] is None):
                             continue
                             #g['value'] = None
+                        elif(row[numP+2] == -999):
+                            continue
+                        elif(row[numP+2] == -9999):
+                            continue
+                            
                         else:
                             g['value'] = float(row[2])
                         
@@ -418,7 +427,6 @@ def gettimeseries(request):
                     collection_list['profile']= profile;
                     tsData = json.dumps(collection_list)
             
-        
         else:
             tsData = "No data for this client"
     
@@ -442,7 +450,7 @@ def gettimeseries(request):
 #===============================================================================
 def value(request):
     ##sensor dictionary
-    paramaterDic = {'current_speed':['m/s',1,'Water Speed'],'current_direction':['degrees from north',2,'Water Direction'],'atmospheric_pressure':['mBar',3,'Mean Atmospheric Pressure'],'humidity':['%',4,'Mean Humidity'],'rain':['mm',5,'Rain Amount'],'air_temp':['C',6,'Mean Air Temperature'],'wind_speed_10m_max':['m/s',7,'Maximum 10m Wind Speed'],'wind_speed_1_5m_max':['m/s',8,'Maximum 1.5m Wind Speed'],'wind_direction_10m':['TN',9,'Mean 10m Wind Direction'],'wind_direction_1_5m':['TN',10,'Mean 1.5m Wind Direction'],'wind_speed_10m_mean':['m/s',11,'Mean 10m Wind Speed'],'wind_speed_1_5m_mean':['m/s',12,'Mean 1.5m Wind Speed'],'vert_wind_speed_max':['m/s',13,'Maximum Vertical Wind Speed'],'vert_wind_speed_mean':['m/s',14,'Mean Vertical Wind Speed'],'vert_wind_speed_min':['m/s',15,'Minimum Vertical Wind Speed'],'salinity':['psu',16,'Water Salinity'],'sound_velocity':['m/s',17,'Sound Velocity'],'density':['kg/m3',18,'Density'],'turbidity':['NTU',19,'Turbidity'],'water_temp':['C',20,'Mean Water Temperature'],'height':['m',21,'HEIGHT'],'voltage':['V',22,'Voltage from Tide'],'tide_height':['m',23,'Tide Height']}
+    paramaterDic = {'current_speed':['m/s',1,'Water Speed'],'current_direction':['degrees from north',2,'Water Direction'],'atmospheric_pressure':['mBar',3,'Mean Atmospheric Pressure'],'humidity':['%',4,'Mean Humidity'],'rain':['mm',5,'Rain Amount'],'air_temp':['C',6,'Mean Air Temperature'],'wind_speed_10m_max':['m/s',7,'Maximum 10m Wind Speed'],'wind_speed_1_5m_max':['m/s',8,'Maximum 1.5m Wind Speed'],'wind_direction_10m':['TN',9,'Mean 10m Wind Direction'],'wind_direction_1_5m':['TN',10,'Mean 1.5m Wind Direction'],'wind_speed_10m_mean':['m/s',11,'Mean 10m Wind Speed'],'wind_speed_1_5m_mean':['m/s',12,'Mean 1.5m Wind Speed'],'vert_wind_speed_max':['m/s',13,'Maximum Vertical Wind Speed'],'vert_wind_speed_mean':['m/s',14,'Mean Vertical Wind Speed'],'vert_wind_speed_min':['m/s',15,'Minimum Vertical Wind Speed'],'salinity':['psu',16,'Water Salinity'],'sound_velocity':['m/s',17,'Sound Velocity'],'density':['kg/m3',18,'Density'],'turbidity':['NTU',19,'Turbidity'],'water_temp':['C',20,'Mean Water Temperature'],'height':['m',21,'Height'],'voltage':['V',22,'Voltage from Tide'],'tide_height':['m',23,'Tide Height'],'wave_height':['m',24,'Wave Height'],'Wave_period':['seconds',25,'Wave Period'],'wave_direction':['d from north',26,'Wave Direction']}
     
     attr = request.GET['attr']
     #depthindex = request.GET['depthindex']
