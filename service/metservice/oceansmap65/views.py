@@ -20,16 +20,8 @@ from django.core.serializers.json import DjangoJSONEncoder
 import ordereddict 
 import traceback, os.path
 
-# import matplotlib
-# from matplotlib import cm
-# matplotlib.use('Agg')
-# import mpl_toolkits.mplot3d.axes3d
-# import matplotlib.pyplot as plt
-# from matplotlib import delaunay
-# from matplotlib.mlab import griddata
 # # scipy griddata
 # from scipy import interpolate
-# from matplotlib.backends.backend_agg import FigureCanvasAgg
 # from mpl_toolkits.basemap import Basemap
 # import numpy as np
 # from numpy import array
@@ -320,6 +312,11 @@ def getvertprofile(request):
 #http://localhost:8080/oceansmap65/metobs/gettimeseriescurrents/?attr=and&st=33&starttime=2011-12-22T00:00:00&endtime=2012-01-05T00:00:00&y=aasdff&d=3
 #===============================================================================
 def gettimeseriescurrents(request):
+    
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from matplotlib.dates import date2num
+
     ##sensor dictionary
     paramaterDic = {'current_speed':['cm/s',1,'Current Speed'],'current_direction':['degrees',2,'Current Direction'],'atmospheric_pressure':['mBar',3,'Mean Atmospheric Pressure'],'humidity':['%',4,'Mean Humidity'],'rain':['mm',5,'Rain Amount'],'air_temp':['C',6,'Mean Air Temperature'],'wind_speed_10m_max':['m/s',7,'Maximum 10m Wind Speed'],'wind_speed_1_5m_max':['m/s',8,'Maximum 1.5m Wind Speed'],'wind_direction_10m':['TN',9,'Mean 10m Wind Direction'],'wind_direction_1_5m':['TN',10,'Mean 1.5m Wind Direction'],'wind_speed_10m_mean':['m/s',11,'Mean 10m Wind Speed'],'wind_speed_1_5m_mean':['m/s',12,'Mean 1.5m Wind Speed'],'vert_wind_speed_max':['m/s',13,'Maximum Vertical Wind Speed'],'vert_wind_speed_mean':['m/s',14,'Mean Vertical Wind Speed'],'vert_wind_speed_min':['m/s',15,'Minimum Vertical Wind Speed'],'salinity':['psu',16,'Water Salinity'],'sound_velocity':['m/s',17,'Sound Velocity'],'density':['kg/m3',18,'Density'],'turbidity':['NTU',19,'Turbidity'],'water_temp':['C',20,'Mean Water Temperature'],'height':['m',21,'Height'],'voltage':['V',22,'Voltage from Tide'],'tide_height':['m',23,'Tide Height'],'wave_height':['m',24,'Water Surface Elevation'],'wave_period':['seconds',25,'Wave Period'],'wave_direction':['degrees',26,'Wave Direction']}
     attr = request.GET['attr']
@@ -345,26 +342,26 @@ def gettimeseriescurrents(request):
         
 
     tsData = []
-
+    curs.execute("select collection_date,  "+param+ " from data.data_values where station_id="+stationID+" and collection_date > '"+ startTime +"' and collection_date < '"+ endTime+ "' and depth ="+dpth+";");
+                            
+    rows_serial = json.dumps(curs.fetchall(), cls=DjangoJSONEncoder);
+    rows_json = json.loads(rows_serial)
+    
+    
     try:
         if(param == ''):
             tsData = "Sorry, no parameters found.";
 
-        elif(str(clientx).lower() == 'and'):
+        elif(str(attr).lower() == 'and'):
             #just anadarko now
             clientID = 1;
 
-            curs.execute("select collection_date,  "+param+ " from data.data_values where station_id="+stationID+" and collection_date > '"+ startTime +"' and collection_date < '"+ endTime+ "' and depth ="+dpth+";");
-                            
-            rows_serial = json.dumps(curs.fetchall(), cls=DjangoJSONEncoder);
-            rows_json = json.loads(rows_serial)
-            
-            
             if(len(realparamlist)>1):
                 numP = 0;
                 collection_list = ordereddict.OrderedDict();
                 profile = ordereddict.OrderedDict();
                 profile['id'] = stationID;
+                profile['depth'] = float(dpth);
 
                 for a in realparamlist:
                     objects_output = [];
@@ -372,7 +369,6 @@ def gettimeseriescurrents(request):
                     for row in rows_json:            
                         g= ordereddict.OrderedDict();
                         g['time'] = row[0];
-                        g['depth'] = row[1];
 
                         if(row[numP+1] is None):
                             continue
@@ -396,11 +392,13 @@ def gettimeseriescurrents(request):
                 
                 collection_list['profile']= profile;
                 tsData = json.dumps(collection_list)
+
+                
         else:
             tsData = "No data for this client"
     
     except Exception, Err:
-        #tsData = "Sorry, Cannot return time series. ";
+        tsData = "Sorry, Cannot return time series. ";
         return HttpResponse(str(tsData));
 
     finally:
@@ -411,6 +409,183 @@ def gettimeseriescurrents(request):
                 return HttpResponse(response)
             else:
                 return response
+        else:
+            return HttpResponse(str(tsData))
+
+
+#===============================================================================
+# Request time series for start and end date profile
+#http://localhost:8080/oceansmap65/metobs/gettimeseriescurrents/?attr=and&st=33&starttime=2011-12-22T00:00:00&endtime=2012-01-05T00:00:00&y=aasdff&d=3
+#===============================================================================
+def gettimeseriescurrentsimage(request):
+    
+    #from numpy import sqrt,amax,amin,array
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from matplotlib.dates import date2num
+    from matplotlib.backends.backend_agg import FigureCanvasAgg
+    from matplotlib.dates import date2num
+
+    from dateutil import parser
+    from cStringIO import StringIO
+
+    attr = request.GET['attr']
+    stationID = request.GET['st']
+    startTime = request.GET['starttime'].upper()
+    endTime = request.GET['endtime'].upper()
+    dpth = request.GET['d'].split(',')
+    try:
+        wd = request.GET['w']
+        ht = request.GET['h']
+        mode = request.GET['y']
+        if wd == '':
+            wd = 900
+            ht = 500        
+    except:
+        wd = 900
+        ht = 500  
+        mode = 'surface'
+    
+    #default to current speed and direction 
+    param = 'value1,value2';
+
+    #===========================================================================
+    # DB Connection.
+    #===========================================================================
+    try:
+        pgconn = pgs.connect(user="postgres",password="PinkPanther#3",host="localhost",port='5432',dbname="oceansmap_obs")
+        curs = pgconn.cursor()
+    except:
+        return HttpResponse("Sorry, Cannot Connect to Data.")
+        
+    #not used
+    tsData = "Choose Surface"
+    #figsize=(10, 6), 
+    fig = plt.figure(num=None, dpi=100, facecolor='w', edgecolor='k')
+    #fig.set_alpha(0.0)
+    fig.set_figheight(float(ht)/100)
+    fig.set_figwidth(float(wd)/100)
+    ax = fig.add_subplot(1,1,1)
+    cmap = plt.cm.rainbow
+
+    props = {'units' : "dots",
+         'width' : 1,
+         'headwidth': 0,
+         'headlength': 0,
+         'headaxislength': 0,
+         'scale' : .5,
+         'cmap': cmap
+         }
+    
+    dpthtics = []
+
+    #iterate through depths
+    for d in dpth:
+
+        if d == '':
+            continue
+
+        curs.execute("select collection_date,  "+param+ " from data.data_values where station_id="+stationID+" and collection_date > '"+ startTime +"' and collection_date < '"+ endTime+ "' and depth ="+d+";");
+        
+        rows_serial = json.dumps(curs.fetchall(), cls=DjangoJSONEncoder);
+        rows_json = json.loads(rows_serial)
+        
+        clientID = 1;
+        tarray = []
+        dsarray = []
+
+        if len(rows_json)<1:
+            continue
+
+        dpthtics.append(int(d)*-1)
+        for row in rows_json:            
+            
+            if(row[1] is None):
+                continue
+            elif(row[1] == -999):
+                continue
+            elif(row[1] == -9999):
+                continue
+            else:
+                #2012-01-21T00:30:00  ,"%Y-%B-%dT%H:%M:%S"
+                tarray.append(parser.parse(row[0]))
+                dsarray.append([row[1],row[2]])
+        
+        data = np.array(dsarray, dtype=np.float)
+        
+        #tsData = tarray
+        speeds  = data[:,0]
+        directions  = data[:,1]
+        
+        times = range(len(speeds))
+     
+        label_scale = 10
+        unit_label = "%3g %s"%(label_scale, "cm/s")
+        
+        y = (int(d)*-1)
+        dir_rad = directions / 180. * np.pi
+        u = np.sin(dir_rad) * speeds
+        v = np.cos(dir_rad) * speeds
+
+        C = np.sqrt(speeds**1)
+
+        Q = ax.quiver(times, y, u, v, C, **props)
+        ax.quiverkey(Q, X=.9, Y=.9999, U=label_scale, labelcolor='#CCCCCC', label=unit_label, labelpos='S',coordinates='axes',fontproperties={'size': 'small'})
+    
+    if (len(dpthtics)<1):
+        mode = 'none'
+        tsData = 'Please check your request'
+    else:
+        #set number of date ticks
+        xaxis = ax.xaxis
+        v = len(times)/(len(xaxis.get_major_ticks())-1)
+        tsShort = []
+        tsShortNum = []
+        for da in tarray[::v]:
+            tsShort.append(str(da.month)+'-'+str(da.day)+'-'+str(da.year))
+            tsShortNum.append(da.day)       
+        #size='xx-small'
+        xaxis.set_ticklabels(tsShort)
+        #tsData = 
+        
+        #buffer the chart vertical depth ticks
+        yaxis = ax.yaxis
+        maxi = (np.amax(np.array(dpthtics,dtype=np.int))+1)
+        mini = (np.amin(np.array(dpthtics,dtype=np.int))-1)
+        dpthtics.append(maxi)
+        dpthtics.append(mini)
+        yaxis.set_ticks(dpthtics)
+
+    try:
+        if(param == ''):
+            tsData = "Sorry, no parameters found.";
+
+        elif(str(attr).lower() == 'and'):
+            clientID = 1;
+                
+        else:
+            tsData = "No data for this client"
+    
+    except Exception, Err:
+        tsData = "Sorry, Cannot return time series. ";
+        return HttpResponse(str(tsData));
+
+    finally:
+        curs.close()
+        pgconn.close()
+        plt.close('all')
+        if mode == 'surface':
+            ####this will return pn image
+            #canvas = FigureCanvasAgg(fig)
+            #response = HttpResponse(content_type='image/png')
+            #canvas.print_png(response)            
+            #this is for encoding on the browser -- didn't want to create an image on the server
+            io = StringIO()
+            fig.savefig(io, format='png')
+            data = io.getvalue().encode('base64')
+            
+            return HttpResponse(data)
+                
         else:
             return HttpResponse(str(tsData))
 
@@ -451,7 +626,6 @@ def gettimeseries(request):
     except:
         return HttpResponse("Sorry, Cannot Connect to Data.")
         
-
     tsData = []
              
     try:
