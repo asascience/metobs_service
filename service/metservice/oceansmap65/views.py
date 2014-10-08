@@ -421,10 +421,12 @@ def gettimeseriescurrentsimage(request):
     
     #from numpy import sqrt,amax,amin,array
     import numpy as np
+    from numpy.random import randn
     import matplotlib.pyplot as plt
+    import matplotlib.cm as cm
+    import matplotlib as mpl
     from matplotlib.dates import date2num
     from matplotlib.backends.backend_agg import FigureCanvasAgg
-    from matplotlib.dates import date2num
 
     from dateutil import parser
     from cStringIO import StringIO
@@ -461,8 +463,8 @@ def gettimeseriescurrentsimage(request):
     #not used
     tsData = "Choose Surface"
     #figsize=(10, 6), 
-    fig = plt.figure(num=None, dpi=100, facecolor='w', edgecolor='k')
-    #fig.set_alpha(0.0)
+    fig = plt.figure(num=None, dpi=100)
+    fig.set_alpha(0.0)
     fig.set_figheight(float(ht)/100)
     fig.set_figwidth(float(wd)/100)
     ax = fig.add_subplot(1,1,1)
@@ -473,7 +475,7 @@ def gettimeseriescurrentsimage(request):
          'headwidth': 0,
          'headlength': 0,
          'headaxislength': 0,
-         'scale' : .5,
+         'scale' : .7,
          'cmap': cmap
          }
     
@@ -513,14 +515,13 @@ def gettimeseriescurrentsimage(request):
         
         data = np.array(dsarray, dtype=np.float)
         
-        #tsData = tarray
         speeds  = data[:,0]
         directions  = data[:,1]
         
-        times = range(len(speeds))
-     
+        #times = range(len(speeds))
         label_scale = 10
-        unit_label = "%3g %s"%(label_scale, "cm/s")
+        #unit_label = "%3g %s"%(label_scale, "cm/s")
+        unit_label = "cm/s"
         
         y = (int(d)*-1)
         dir_rad = directions / 180. * np.pi
@@ -528,25 +529,28 @@ def gettimeseriescurrentsimage(request):
         v = np.cos(dir_rad) * speeds
 
         C = np.sqrt(speeds**1)
+        
+        time, u, v = map(np.asanyarray, (tarray, u, v))
 
-        Q = ax.quiver(times, y, u, v, C, **props)
-        ax.quiverkey(Q, X=.9, Y=.9999, U=label_scale, labelcolor='#CCCCCC', label=unit_label, labelpos='S',coordinates='axes',fontproperties={'size': 'small'})
+        Q = ax.quiver(date2num(time), y, u, v, C, **props)
+        ax.quiverkey(Q, X=.9, Y=.9999, U=label_scale, label=unit_label, labelpos='S',coordinates='axes',fontproperties={'size': 'small'})
     
     if (len(dpthtics)<1):
         mode = 'none'
         tsData = 'Please check your request'
     else:
         #set number of date ticks
-        xaxis = ax.xaxis
-        v = len(times)/(len(xaxis.get_major_ticks())-1)
-        tsShort = []
-        tsShortNum = []
-        for da in tarray[::v]:
-            tsShort.append(str(da.month)+'-'+str(da.day)+'-'+str(da.year))
-            tsShortNum.append(da.day)       
-        #size='xx-small'
-        xaxis.set_ticklabels(tsShort)
-        #tsData = 
+        # xaxis = ax.xaxis
+        # v = len(times)/(len(xaxis.get_major_ticks())-1)
+        # #v = len(times)/len(xaxis.get_major_ticks())
+        # tsShort = []
+        # tsShortNum = []
+        # for da in tarray[::v]:
+        #     tsShort.append(str(da.month)+'-'+str(da.day)+'-'+str(da.hour)+'h')
+        #     tsShortNum.append(da.day) 
+        # xaxis.set_ticklabels(tsShort,rotation='45')
+        plt.xticks(rotation=12)
+        ax.xaxis_date()
         
         #buffer the chart vertical depth ticks
         yaxis = ax.yaxis
@@ -555,6 +559,18 @@ def gettimeseriescurrentsimage(request):
         dpthtics.append(maxi)
         dpthtics.append(mini)
         yaxis.set_ticks(dpthtics)
+
+        # legend
+        ax1 = fig.add_axes([0.904, .31, 0.02, 0.377])
+        norm = mpl.colors.Normalize(vmin=min(speeds), vmax=max(speeds))
+        cb1 = mpl.colorbar.ColorbarBase(ax1, cmap=cmap,
+                                   norm=norm,
+                                   orientation='vertical')
+        #change text font size
+        for label in (ax.get_xticklabels() + ax.get_yticklabels()):
+            label.set_fontsize(9)
+        for label in (ax1.get_xticklabels() + ax1.get_yticklabels()):
+            label.set_fontsize(9)
 
     try:
         if(param == ''):
@@ -573,9 +589,11 @@ def gettimeseriescurrentsimage(request):
     finally:
         curs.close()
         pgconn.close()
+
+        #tsData = data1
         plt.close('all')
         if mode == 'surface':
-            ####this will return pn image
+            ####this will return png image
             #canvas = FigureCanvasAgg(fig)
             #response = HttpResponse(content_type='image/png')
             #canvas.print_png(response)            
@@ -585,6 +603,7 @@ def gettimeseriescurrentsimage(request):
             data = io.getvalue().encode('base64')
             
             return HttpResponse(data)
+            #return response
                 
         else:
             return HttpResponse(str(tsData))
