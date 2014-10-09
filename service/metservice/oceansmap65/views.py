@@ -19,16 +19,18 @@ from django.core.serializers.json import DjangoJSONEncoder
 #from djgeojson.serializers import Serializer as GeoJSONSerializer
 import ordereddict 
 import traceback, os.path
+    
+#from numpy import sqrt,amax,amin,array
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import matplotlib as mpl
+from matplotlib.dates import date2num
+from matplotlib.backends.backend_agg import FigureCanvasAgg
+import matplotlib.gridspec as gridspec
 
-# # scipy griddata
-# from scipy import interpolate
-# from mpl_toolkits.basemap import Basemap
-# import numpy as np
-# from numpy import array
-# import subprocess
-# from PIL import Image
-# import re
-#import getpass
+from dateutil import parser
+from cStringIO import StringIO
 
 
 class customError(Exception):
@@ -312,10 +314,6 @@ def getvertprofile(request):
 #http://localhost:8080/oceansmap65/metobs/gettimeseriescurrents/?attr=and&st=33&starttime=2011-12-22T00:00:00&endtime=2012-01-05T00:00:00&y=aasdff&d=3
 #===============================================================================
 def gettimeseriescurrents(request):
-    
-    import numpy as np
-    import matplotlib.pyplot as plt
-    from matplotlib.dates import date2num
 
     ##sensor dictionary
     paramaterDic = {'current_speed':['cm/s',1,'Current Speed'],'current_direction':['degrees',2,'Current Direction'],'atmospheric_pressure':['mBar',3,'Mean Atmospheric Pressure'],'humidity':['%',4,'Mean Humidity'],'rain':['mm',5,'Rain Amount'],'air_temp':['C',6,'Mean Air Temperature'],'wind_speed_10m_max':['m/s',7,'Maximum 10m Wind Speed'],'wind_speed_1_5m_max':['m/s',8,'Maximum 1.5m Wind Speed'],'wind_direction_10m':['TN',9,'Mean 10m Wind Direction'],'wind_direction_1_5m':['TN',10,'Mean 1.5m Wind Direction'],'wind_speed_10m_mean':['m/s',11,'Mean 10m Wind Speed'],'wind_speed_1_5m_mean':['m/s',12,'Mean 1.5m Wind Speed'],'vert_wind_speed_max':['m/s',13,'Maximum Vertical Wind Speed'],'vert_wind_speed_mean':['m/s',14,'Mean Vertical Wind Speed'],'vert_wind_speed_min':['m/s',15,'Minimum Vertical Wind Speed'],'salinity':['psu',16,'Water Salinity'],'sound_velocity':['m/s',17,'Sound Velocity'],'density':['kg/m3',18,'Density'],'turbidity':['NTU',19,'Turbidity'],'water_temp':['C',20,'Mean Water Temperature'],'height':['m',21,'Height'],'voltage':['V',22,'Voltage from Tide'],'tide_height':['m',23,'Tide Height'],'wave_height':['m',24,'Water Surface Elevation'],'wave_period':['seconds',25,'Wave Period'],'wave_direction':['degrees',26,'Wave Direction']}
@@ -418,18 +416,6 @@ def gettimeseriescurrents(request):
 #http://localhost:8080/oceansmap65/metobs/gettimeseriescurrents/?attr=and&st=33&starttime=2011-12-22T00:00:00&endtime=2012-01-05T00:00:00&y=aasdff&d=3
 #===============================================================================
 def gettimeseriescurrentsimage(request):
-    
-    #from numpy import sqrt,amax,amin,array
-    import numpy as np
-    from numpy.random import randn
-    import matplotlib.pyplot as plt
-    import matplotlib.cm as cm
-    import matplotlib as mpl
-    from matplotlib.dates import date2num
-    from matplotlib.backends.backend_agg import FigureCanvasAgg
-
-    from dateutil import parser
-    from cStringIO import StringIO
 
     attr = request.GET['attr']
     stationID = request.GET['st']
@@ -462,7 +448,7 @@ def gettimeseriescurrentsimage(request):
         
     #not used
     tsData = "Choose Surface"
-    #figsize=(10, 6), 
+    figsize=(10, 6), 
     fig = plt.figure(num=None, dpi=100)
     fig.set_alpha(0.0)
     fig.set_figheight(float(ht)/100)
@@ -599,7 +585,7 @@ def gettimeseriescurrentsimage(request):
             #canvas.print_png(response)            
             #this is for encoding on the browser -- didn't want to create an image on the server
             io = StringIO()
-            fig.savefig(io, format='png')
+            fig.savefig(io, format='png',bbox_inches='tight',pad_inches=0.2)
             data = io.getvalue().encode('base64')
             
             return HttpResponse(data)
