@@ -79,11 +79,11 @@ set pretty_params = stations.pretty_params || 'Turbidity,'
 where station_id in (select distinct station_id from data.data_values where value19 is not null);
 
 update data.stations
-set pretty_params = stations.pretty_params || 'Mean Water Temperature,'
+set pretty_params = stations.pretty_params || 'Water Temperature,'
 where station_id in (select distinct station_id from data.data_values where value20 is not null);
 
 update data.stations
-set pretty_params = stations.pretty_params || 'Water Height,'
+set pretty_params = stations.pretty_params || 'Surface Elevation,'
 where station_id in (select distinct station_id from data.data_values where value21 is not null);
 
 update data.stations
@@ -95,7 +95,7 @@ set pretty_params = stations.pretty_params || 'Tide Height,'
 where station_id in (select distinct station_id from data.data_values where value23 is not null);
 
 update data.stations
-set pretty_params = stations.pretty_params || 'Water Surface Elevation,'
+set pretty_params = stations.pretty_params || 'Wave Height,'
 where station_id in (select distinct station_id from data.data_values where value24 is not null);
 
 update data.stations
