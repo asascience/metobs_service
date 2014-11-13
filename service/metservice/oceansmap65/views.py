@@ -1,16 +1,15 @@
 # Create your views here.
 #from django.template import Context, loader
 from django.shortcuts import render_to_response, get_object_or_404
-#from ctd_j.models import *
 from django.http import HttpResponseRedirect, HttpResponse
 from django.template import RequestContext
 from django.core.urlresolvers import reverse
+from django.db import connections 
 
-import random, string, os, sys
-#import bpgsql as pgs
+import string, os, sys
+#import bpgsql as pgs random, 
 from datetime import datetime
-
-import psycopg2 as pgs
+#import psycopg2 as pgs
 
 #json as response
 #from django.utils import simplejson as json
@@ -19,27 +18,14 @@ from django.core.serializers.json import DjangoJSONEncoder
 #from djgeojson.serializers import Serializer as GeoJSONSerializer
 import ordereddict 
 import traceback, os.path
-    
-#from numpy import sqrt,amax,amin,array
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
-import matplotlib as mpl
-from matplotlib.dates import date2num
-from matplotlib.backends.backend_agg import FigureCanvasAgg
-import matplotlib.gridspec as gridspec
 
-from dateutil import parser
 from cStringIO import StringIO
-
 
 class customError(Exception):
     def __init__(self, value):
         self.value = value
     def __str__(self):
         return repr(self.value)
-
-
 
 #===============================================================================
 # Execute any commandline program and return the result. 
@@ -82,6 +68,7 @@ def execute(exec_list,out=True,limit_response=0,errors_expected=False,return_pro
                 if out:
                     return_response.append(r)
                     print r
+
     return local_response
 
 #===============================================================================
@@ -142,12 +129,12 @@ def getstations(request):
     # DB Connection.
     #===========================================================================
     try:
-        pgconn = pgs.connect(user="postgres",password="PinkPanther#3",host="localhost",port='5432',dbname="oceansmap_obs")
-        curs = pgconn.cursor()
+        #pgconn = pgs.connect(user="postgres",password="PinkPanther#3",host="localhost",port='5432',dbname="oceansmap_obs")
+        #curs = pgconn.cursor()
+        curs = connections['default'].cursor()
     except:
         return HttpResponse("Sorry, Cannot Connect to Data.")
         
-
     stationData = []
     
     try:            
@@ -159,7 +146,8 @@ def getstations(request):
             
             rows_serial = json.dumps(curs.fetchall(), cls=DjangoJSONEncoder);
             rows_json = json.loads(rows_serial)
-
+            curs.close()
+            #pgconn.close()
             objects_geojson = []
             collection_list = ordereddict.OrderedDict()
             for row in rows_json:
@@ -188,17 +176,17 @@ def getstations(request):
             collection_list['type']= "FeatureCollection";
             collection_list['features'] =objects_geojson;
             stationData = json.dumps(collection_list)
-        
+
         else:
             stationData = "No data for this client"
 
     
     except Exception, Err:
+        curs.close()
+        #pgconn.close()
         stationData.append("Sorry, Cannot return stations. ")
         return HttpResponse(str(stationData))
     finally:
-        curs.close()
-        pgconn.close()
         if mode == 'surface':
             if type(response) == str:
                 return HttpResponse(response)
@@ -220,17 +208,16 @@ def getvertprofile(request):
     #paramrequest = paramaterDic.get(request.GET['p'])
     #whereclause = request.GET['y']
     
-    
     #===========================================================================
     # DB Connection.
     #===========================================================================
     try:
-        pgconn = pgs.connect(user="postgres",password="PinkPanther#3",host="localhost",port='5432',dbname="oceansmap_obs")
-        curs = pgconn.cursor()
+        #pgconn = pgs.connect(user="postgres",password="PinkPanther#3",host="localhost",port='5432',dbname="oceansmap_obs")
+        #curs = pgconn.cursor()
+        curs = connections['default'].cursor()
     except:
         return HttpResponse("Sorry, Cannot Connect to Data.")
         
-
     vertData = []
 
     try:            
@@ -242,6 +229,8 @@ def getvertprofile(request):
             
             rows_serial = json.dumps(curs.fetchall(), cls=DjangoJSONEncoder);
             rows_json = json.loads(rows_serial)
+            curs.close()
+            #pgconn.close()
             if(len(rows_json)>1):         
                 collection_list = ordereddict.OrderedDict();
                 profile = ordereddict.OrderedDict();
@@ -289,17 +278,16 @@ def getvertprofile(request):
                 collection_list['profile']= profile;
                 collection_list['status_info']= statusinfo;
                 vertData = json.dumps(collection_list);
-
-        
+     
         else:
             vertData = "No data for this client"
     
     except Exception, Err:
+        curs.close()
+        #pgconn.close()
         vertData.append("Sorry, Cannot return Values. ")
         return HttpResponse(str(vertData))
     finally:
-        curs.close()
-        pgconn.close()
         if mode == 'surface':
             if type(response) == str:
                 return HttpResponse(response)
@@ -316,7 +304,7 @@ def getvertprofile(request):
 def gettimeseriescurrents(request):
 
     ##sensor dictionary
-    paramaterDic = {'current_speed':['cm/s',1,'Current Speed'],'current_direction':['degrees',2,'Current Direction'],'atmospheric_pressure':['mBar',3,'Mean Atmospheric Pressure'],'humidity':['%',4,'Mean Humidity'],'rain':['mm',5,'Rain Amount'],'air_temp':['C',6,'Air Temperature'],'wind_speed_10m_max':['m/s',7,'Maximum 10m Wind Speed'],'wind_speed_1_5m_max':['m/s',8,'Maximum 1.5m Wind Speed'],'wind_direction_10m':['TN',9,'Mean 10m Wind Direction'],'wind_direction_1_5m':['TN',10,'Mean 1.5m Wind Direction'],'wind_speed_10m_mean':['m/s',11,'Mean 10m Wind Speed'],'wind_speed_1_5m_mean':['m/s',12,'Mean 1.5m Wind Speed'],'vert_wind_speed_max':['m/s',13,'Maximum Vertical Wind Speed'],'vert_wind_speed_mean':['m/s',14,'Mean Vertical Wind Speed'],'vert_wind_speed_min':['m/s',15,'Minimum Vertical Wind Speed'],'salinity':['psu',16,'Water Salinity'],'sound_velocity':['m/s',17,'Sound Velocity'],'density':['kg/m3',18,'Density'],'turbidity':['NTU',19,'Turbidity'],'water_temp':['C',20,'Water Temperature'],'height':['m',21,'Height'],'voltage':['V',22,'Voltage from Tide'],'tide_height':['m',23,'Tide Height'],'wave_height':['m',24,'Wave Height'],'wave_period':['seconds',25,'Wave Period'],'wave_direction':['degrees',26,'Wave Direction']}
+    paramaterDic = {'current_speed':['cm/s',1,'Current Speed'],'current_direction':['degrees',2,'Current Direction'],'atmospheric_pressure':['mBar',3,'Mean Atmospheric Pressure'],'humidity':['%',4,'Mean Humidity'],'rain':['mm',5,'Rain Amount'],'air_temp':['C',6,'Air Temperature'],'wind_speed_10m_max':['m/s',7,'Maximum 10m Wind Speed'],'wind_speed_1_5m_max':['m/s',8,'Maximum 1.5m Wind Speed'],'wind_direction_10m':['TN',9,'Mean 10m Wind Direction'],'wind_direction_1_5m':['TN',10,'Mean 1.5m Wind Direction'],'wind_speed_10m_mean':['m/s',11,'Mean 10m Wind Speed'],'wind_speed_1_5m_mean':['m/s',12,'Mean 1.5m Wind Speed'],'vert_wind_speed_max':['m/s',13,'Maximum Vertical Wind Speed'],'vert_wind_speed_mean':['m/s',14,'Mean Vertical Wind Speed'],'vert_wind_speed_min':['m/s',15,'Minimum Vertical Wind Speed'],'salinity':['psu',16,'Water Salinity'],'sound_velocity':['m/s',17,'Sound Velocity'],'density':['kg/m3',18,'Density'],'turbidity':['NTU',19,'Turbidity'],'water_temp':['C',20,'Water Temperature'],'height':['m',21,'Surface Elevation'],'voltage':['V',22,'Voltage from Tide'],'tide_height':['m',23,'Tide Height'],'wave_height':['m',24,'Wave Height'],'wave_period':['seconds',25,'Wave Period'],'wave_direction':['degrees',26,'Wave Direction']}
     attr = request.GET['attr']
     #depthindex = request.GET['depthindex']
     stationID = request.GET['st']
@@ -333,18 +321,19 @@ def gettimeseriescurrents(request):
     # DB Connection.
     #===========================================================================
     try:
-        pgconn = pgs.connect(user="postgres",password="PinkPanther#3",host="localhost",port='5432',dbname="oceansmap_obs")
-        curs = pgconn.cursor()
+        #pgconn = pgs.connect(user="postgres",password="PinkPanther#3",host="localhost",port='5432',dbname="oceansmap_obs")
+        #curs = pgconn.cursor()
+        curs = connections['default'].cursor()
     except:
         return HttpResponse("Sorry, Cannot Connect to Data.")
         
-
     tsData = []
     curs.execute("select collection_date,  "+param+ " from data.data_values where station_id="+stationID+" and collection_date > '"+ startTime +"' and collection_date < '"+ endTime+ "' and depth ="+dpth+";");
                             
     rows_serial = json.dumps(curs.fetchall(), cls=DjangoJSONEncoder);
     rows_json = json.loads(rows_serial)
-    
+    curs.close()
+    #pgconn.close()
     
     try:
         if(param == ''):
@@ -390,18 +379,17 @@ def gettimeseriescurrents(request):
                 
                 collection_list['profile']= profile;
                 tsData = json.dumps(collection_list)
-
                 
         else:
             tsData = "No data for this client"
     
     except Exception, Err:
+        curs.close()
+        #pgconn.close()
         tsData = "Sorry, Cannot return time series. ";
         return HttpResponse(str(tsData));
 
     finally:
-        curs.close()
-        pgconn.close()
         if mode == 'surface':
             if type(response) == str:
                 return HttpResponse(response)
@@ -410,12 +398,20 @@ def gettimeseriescurrents(request):
         else:
             return HttpResponse(str(tsData))
 
-
 #===============================================================================
 # Request time series for start and end date profile
 #http://localhost:8080/oceansmap65/metobs/gettimeseriescurrents/?attr=and&st=33&starttime=2011-12-22T00:00:00&endtime=2012-01-05T00:00:00&y=aasdff&d=3
 #===============================================================================
 def gettimeseriescurrentsimage(request):
+
+    import numpy as np
+    import matplotlib as mpl
+    mpl.use('Agg')
+    import matplotlib.pyplot as plt
+    from matplotlib.dates import date2num
+    from matplotlib.backends.backend_agg import FigureCanvasAgg
+    import matplotlib.gridspec as gridspec
+    from dateutil import parser
 
     attr = request.GET['attr']
     stationID = request.GET['st']
@@ -441,8 +437,9 @@ def gettimeseriescurrentsimage(request):
     # DB Connection.
     #===========================================================================
     try:
-        pgconn = pgs.connect(user="postgres",password="PinkPanther#3",host="localhost",port='5432',dbname="oceansmap_obs")
-        curs = pgconn.cursor()
+        #pgconn = pgs.connect(user="postgres",password="PinkPanther#3",host="localhost",port='5432',dbname="oceansmap_obs")
+        #curs = pgconn.cursor()
+        curs = connections['default'].cursor()
     except:
         return HttpResponse("Sorry, Cannot Connect to Data.")
         
@@ -478,6 +475,8 @@ def gettimeseriescurrentsimage(request):
         rows_serial = json.dumps(curs.fetchall(), cls=DjangoJSONEncoder);
         rows_json = json.loads(rows_serial)
         
+        curs.close()
+        #pgconn.close()
         clientID = 1;
         tarray = []
         dsarray = []
@@ -570,12 +569,11 @@ def gettimeseriescurrentsimage(request):
     
     except Exception, Err:
         tsData = "Sorry, Cannot return time series. ";
+        curs.close()
+        #pgconn.close()
         return HttpResponse(str(tsData));
 
     finally:
-        curs.close()
-        pgconn.close()
-
         #tsData = data1
         plt.close('all')
         if mode == 'surface':
@@ -599,7 +597,7 @@ def gettimeseriescurrentsimage(request):
 #===============================================================================
 def gettimeseries(request):
     ##sensor dictionary
-    paramaterDic = {'current_speed':['cm/s',1,'Current Speed'],'current_direction':['degrees',2,'Current Direction'],'atmospheric_pressure':['mBar',3,'Mean Atmospheric Pressure'],'humidity':['%',4,'Mean Humidity'],'rain':['mm',5,'Rain Amount'],'air_temp':['C',6,'Air Temperature'],'wind_speed_10m_max':['m/s',7,'Maximum 10m Wind Speed'],'wind_speed_1_5m_max':['m/s',8,'Maximum 1.5m Wind Speed'],'wind_direction_10m':['TN',9,'Mean 10m Wind Direction'],'wind_direction_1_5m':['TN',10,'Mean 1.5m Wind Direction'],'wind_speed_10m_mean':['m/s',11,'Mean 10m Wind Speed'],'wind_speed_1_5m_mean':['m/s',12,'Mean 1.5m Wind Speed'],'vert_wind_speed_max':['m/s',13,'Maximum Vertical Wind Speed'],'vert_wind_speed_mean':['m/s',14,'Mean Vertical Wind Speed'],'vert_wind_speed_min':['m/s',15,'Minimum Vertical Wind Speed'],'salinity':['psu',16,'Water Salinity'],'sound_velocity':['m/s',17,'Sound Velocity'],'density':['kg/m3',18,'Density'],'turbidity':['NTU',19,'Turbidity'],'water_temp':['C',20,'Mean Water Temperature'],'height':['m',21,'Height'],'voltage':['V',22,'Voltage from Tide'],'tide_height':['m',23,'Tide Height'],'wave_height':['m',24,'Wave Height'],'wave_period':['seconds',25,'Wave Period'],'wave_direction':['degrees',26,'Wave Direction']}
+    paramaterDic = {'current_speed':['cm/s',1,'Current Speed'],'current_direction':['degrees',2,'Current Direction'],'atmospheric_pressure':['mBar',3,'Mean Atmospheric Pressure'],'humidity':['%',4,'Mean Humidity'],'rain':['mm',5,'Rain Amount'],'air_temp':['C',6,'Air Temperature'],'wind_speed_10m_max':['m/s',7,'Maximum 10m Wind Speed'],'wind_speed_1_5m_max':['m/s',8,'Maximum 1.5m Wind Speed'],'wind_direction_10m':['TN',9,'Mean 10m Wind Direction'],'wind_direction_1_5m':['TN',10,'Mean 1.5m Wind Direction'],'wind_speed_10m_mean':['m/s',11,'Mean 10m Wind Speed'],'wind_speed_1_5m_mean':['m/s',12,'Mean 1.5m Wind Speed'],'vert_wind_speed_max':['m/s',13,'Maximum Vertical Wind Speed'],'vert_wind_speed_mean':['m/s',14,'Mean Vertical Wind Speed'],'vert_wind_speed_min':['m/s',15,'Minimum Vertical Wind Speed'],'salinity':['psu',16,'Water Salinity'],'sound_velocity':['m/s',17,'Sound Velocity'],'density':['kg/m3',18,'Density'],'turbidity':['NTU',19,'Turbidity'],'water_temp':['C',20,'Mean Water Temperature'],'height':['m',21,'Surface Elevation'],'voltage':['V',22,'Voltage from Tide'],'tide_height':['m',23,'Tide Height'],'wave_height':['m',24,'Wave Height'],'wave_period':['seconds',25,'Wave Period'],'wave_direction':['degrees',26,'Wave Direction']}
     
     attr = request.GET['attr']
     #depthindex = request.GET['depthindex']
@@ -626,8 +624,9 @@ def gettimeseries(request):
     # DB Connection.
     #===========================================================================
     try:
-        pgconn = pgs.connect(user="postgres",password="PinkPanther#3",host="localhost",port='5432',dbname="oceansmap_obs")
-        curs = pgconn.cursor()
+        #pgconn = pgs.connect(user="postgres",password="PinkPanther#3",host="localhost",port='5432',dbname="oceansmap_obs")
+        #curs = pgconn.cursor()
+        curs = connections['default'].cursor()
     except:
         return HttpResponse("Sorry, Cannot Connect to Data.")
         
@@ -646,6 +645,8 @@ def gettimeseries(request):
             rows_serial = json.dumps(curs.fetchall(), cls=DjangoJSONEncoder);
             rows_json = json.loads(rows_serial)
             
+            curs.close()
+            #pgconn.close()
             if(len(rows_json)>1):
                 #this is to format json based on the number of parameters
                 if(len(realparamlist)>1):
@@ -730,11 +731,11 @@ def gettimeseries(request):
             tsData = "No data for this client"
     
     except Exception, Err:
+        curs.close()
+        #pgconn.close()
         tsData = "Sorry, Cannot return time series. ";
         return HttpResponse(str(tsData))
     finally:
-        curs.close()
-        pgconn.close()
         if mode == 'surface':
             if type(response) == str:
                 return HttpResponse(response)
@@ -743,14 +744,13 @@ def gettimeseries(request):
         else:
             return HttpResponse(str(tsData))
 
-
 #===============================================================================
 # Request all values at specific date/time  
 # input = timestamp
 #===============================================================================
 def getvalues(request):
     ##sensor dictionary
-    paramaterDic = {'current_speed':['cm/s',1,'Current Speed'],'current_direction':['degrees',2,'Current Direction'],'atmospheric_pressure':['mBar',3,'Mean Atmospheric Pressure'],'humidity':['%',4,'Mean Humidity'],'rain':['mm',5,'Rain Amount'],'air_temp':['C',6,'Air Temperature'],'wind_speed_10m_max':['m/s',7,'Maximum 10m Wind Speed'],'wind_speed_1_5m_max':['m/s',8,'Maximum 1.5m Wind Speed'],'wind_direction_10m':['TN',9,'Mean 10m Wind Direction'],'wind_direction_1_5m':['TN',10,'Mean 1.5m Wind Direction'],'wind_speed_10m_mean':['m/s',11,'Mean 10m Wind Speed'],'wind_speed_1_5m_mean':['m/s',12,'Mean 1.5m Wind Speed'],'vert_wind_speed_max':['m/s',13,'Maximum Vertical Wind Speed'],'vert_wind_speed_mean':['m/s',14,'Mean Vertical Wind Speed'],'vert_wind_speed_min':['m/s',15,'Minimum Vertical Wind Speed'],'salinity':['psu',16,'Water Salinity'],'sound_velocity':['m/s',17,'Sound Velocity'],'density':['kg/m3',18,'Density'],'turbidity':['NTU',19,'Turbidity'],'water_temp':['C',20,'Mean Water Temperature'],'height':['m',21,'Height'],'voltage':['V',22,'Voltage from Tide'],'tide_height':['m',23,'Tide Height'],'wave_height':['m',24,'Wave Height'],'wave_period':['seconds',25,'Wave Period'],'wave_direction':['degrees',26,'Wave Direction']}
+    paramaterDic = {'current_speed':['cm/s',1,'Current Speed'],'current_direction':['degrees',2,'Current Direction'],'atmospheric_pressure':['mBar',3,'Mean Atmospheric Pressure'],'humidity':['%',4,'Mean Humidity'],'rain':['mm',5,'Rain Amount'],'air_temp':['C',6,'Air Temperature'],'wind_speed_10m_max':['m/s',7,'Maximum 10m Wind Speed'],'wind_speed_1_5m_max':['m/s',8,'Maximum 1.5m Wind Speed'],'wind_direction_10m':['TN',9,'Mean 10m Wind Direction'],'wind_direction_1_5m':['TN',10,'Mean 1.5m Wind Direction'],'wind_speed_10m_mean':['m/s',11,'Mean 10m Wind Speed'],'wind_speed_1_5m_mean':['m/s',12,'Mean 1.5m Wind Speed'],'vert_wind_speed_max':['m/s',13,'Maximum Vertical Wind Speed'],'vert_wind_speed_mean':['m/s',14,'Mean Vertical Wind Speed'],'vert_wind_speed_min':['m/s',15,'Minimum Vertical Wind Speed'],'salinity':['psu',16,'Water Salinity'],'sound_velocity':['m/s',17,'Sound Velocity'],'density':['kg/m3',18,'Density'],'turbidity':['NTU',19,'Turbidity'],'water_temp':['C',20,'Mean Water Temperature'],'height':['m',21,'Surface Elevation'],'voltage':['V',22,'Voltage from Tide'],'tide_height':['m',23,'Tide Height'],'wave_height':['m',24,'Wave Height'],'wave_period':['seconds',25,'Wave Period'],'wave_direction':['degrees',26,'Wave Direction']}
     
     attr = request.GET['attr']
     #depthindex = request.GET['depthindex']
@@ -762,17 +762,19 @@ def getvalues(request):
     # DB Connection.
     #===========================================================================
     try:
-        pgconn = pgs.connect(user="postgres",password="PinkPanther#3",host="localhost",port='5432',dbname="oceansmap_obs")
-        curs = pgconn.cursor()
+        #pgconn = pgs.connect(user="postgres",password="PinkPanther#3",host="localhost",port='5432',dbname="oceansmap_obs")
+        #curs = pgconn.cursor()
+        curs = connections['default'].cursor()
     except:
         return HttpResponse("Sorry, Cannot Connect to Data.")
         
-    
     tsData = []
     
     curs.execute("select station_id,depth,value3,value4,value5,value6,value7,value8,value9,value10,value11,value12,value13,value14,value15,value16,value17,value18,value19,value20,value21,value22,value23,value24,value25,value26 from data.data_values where collection_date = '"+ curTime +"';");
             
     rows_serial = json.dumps(curs.fetchall(), cls=DjangoJSONEncoder);
+    curs.close()
+    #pgconn.close()
     #this is to format json based on the number of parameters
     rows_json = json.loads(rows_serial)
     
@@ -841,7 +843,6 @@ def getvalues(request):
     collection_list['time'] = curTime;
     tsData = json.dumps(collection_list)
 
-
     try:
         if(str(attr).lower() == 'and'):
             #just anadarko now
@@ -851,11 +852,11 @@ def getvalues(request):
             tsData = "No data for this client"
     
     except Exception, Err:
+        curs.close()
+        #pgconn.close()
         tsData = "Sorry, Cannot return time series. ";
         return HttpResponse(str(tsData))
     finally:
-        curs.close()
-        pgconn.close()
         if mode == 'surface':
             if type(response) == str:
                 return HttpResponse(response)
@@ -863,4 +864,3 @@ def getvalues(request):
                 return response
         else:
             return HttpResponse(str(tsData))
-

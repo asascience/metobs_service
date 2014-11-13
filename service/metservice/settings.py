@@ -1,6 +1,6 @@
 # Django settings for ctdservice project.
 
-DEBUG = True
+DEBUG = False
 TEMPLATE_DEBUG = DEBUG
 
 ADMINS = (
@@ -11,8 +11,9 @@ MANAGERS = ADMINS
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
-        'NAME': '',                                         # Or path to database file if using sqlite3.
+        'OPTIONS': {'MAX_CONNS': 1},
+        'ENGINE': 'dbpool.db.backends.postgresql_psycopg2', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
+        'NAME': 'oceansmap_obs',                                        # Or path to database file if using sqlite3.
         'USER': 'postgres',                                      # Not used with sqlite3.
         'PASSWORD': 'PinkPanther#3',                                  # Not used with sqlite3.
         'HOST': 'localhost',                                # Set to empty string for localhost. Not used with sqlite3.
@@ -123,6 +124,7 @@ TEMPLATE_DIRS = (
     # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.
+    "C:/projects/metobs_service/service/metservice/templates",
 )
 
 INSTALLED_APPS = (
