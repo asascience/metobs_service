@@ -328,7 +328,7 @@ def gettimeseriescurrents(request):
         return HttpResponse("Sorry, Cannot Connect to Data.")
         
     tsData = []
-    curs.execute("select collection_date,  "+param+ " from data.data_values where station_id="+stationID+" and collection_date > '"+ startTime +"' and collection_date < '"+ endTime+ "' and depth ="+dpth+";");
+    curs.execute("select collection_date,  "+param+ " from data.data_values_1h where station_id="+stationID+" and collection_date > '"+ startTime +"' and collection_date < '"+ endTime+ "' and depth ="+dpth+";");
                             
     rows_serial = json.dumps(curs.fetchall(), cls=DjangoJSONEncoder);
     rows_json = json.loads(rows_serial)
@@ -470,13 +470,11 @@ def gettimeseriescurrentsimage(request):
         if d == '':
             continue
 
-        curs.execute("select collection_date,  "+param+ " from data.data_values where station_id="+stationID+" and collection_date > '"+ startTime +"' and collection_date < '"+ endTime+ "' and depth ="+d+";");
-        
+        curs.execute("select collection_date,  "+param+ " from data.data_values_1h where station_id="+stationID+" and collection_date > '"+ startTime +"' and collection_date < '"+ endTime+ "' and depth ="+d+";");
+                
         rows_serial = json.dumps(curs.fetchall(), cls=DjangoJSONEncoder);
         rows_json = json.loads(rows_serial)
         
-        curs.close()
-        #pgconn.close()
         clientID = 1;
         tarray = []
         dsarray = []
@@ -519,6 +517,9 @@ def gettimeseriescurrentsimage(request):
 
         Q = ax.quiver(date2num(time), y, u, v, C, **props)
         ax.quiverkey(Q, X=.9, Y=.9999, U=label_scale, label=unit_label, labelpos='S',coordinates='axes',fontproperties={'size': 'small'})
+    
+
+    curs.close()
     
     if (len(dpthtics)<1):
         mode = 'none'
@@ -640,7 +641,7 @@ def gettimeseries(request):
             #just anadarko now
             clientID = 1;
 
-            curs.execute("select collection_date, depth "+param+ " from data.data_values where station_id="+stationID+" and collection_date > '"+ startTime +"' and collection_date < '"+ endTime+ "';");
+            curs.execute("select collection_date, depth "+param+ " from data.data_values_1h where station_id="+stationID+" and collection_date > '"+ startTime +"' and collection_date < '"+ endTime+ "';");
                             
             rows_serial = json.dumps(curs.fetchall(), cls=DjangoJSONEncoder);
             rows_json = json.loads(rows_serial)
@@ -770,7 +771,7 @@ def getvalues(request):
         
     tsData = []
     
-    curs.execute("select station_id,depth,value3,value4,value5,value6,value7,value8,value9,value10,value11,value12,value13,value14,value15,value16,value17,value18,value19,value20,value21,value22,value23,value24,value25,value26 from data.data_values where collection_date = '"+ curTime +"';");
+    curs.execute("select station_id,depth,value3,value4,value5,value6,value7,value8,value9,value10,value11,value12,value13,value14,value15,value16,value17,value18,value19,value20,value21,value22,value23,value24,value25,value26 from data.data_values_1h where collection_date = '"+ curTime +"';");
             
     rows_serial = json.dumps(curs.fetchall(), cls=DjangoJSONEncoder);
     curs.close()

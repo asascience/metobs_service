@@ -15,8 +15,8 @@ DATABASES = {
         'OPTIONS': {'MAX_CONNS': 1},
         'ENGINE': 'dbpool.db.backends.postgresql_psycopg2', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
         'NAME': 'oceansmap_obs',                                       # Or path to database file if using sqlite3.
-        'USER': 'postgres',                                      # Not used with sqlite3.
-        'PASSWORD': 'PinkPanther#3',                                  # Not used with sqlite3.
+        'USER': 'om_user',                                      # Not used with sqlite3.
+        'PASSWORD': 'om_user',                                  # Not used with sqlite3.
         'HOST': 'localhost',                                # Set to empty string for localhost. Not used with sqlite3.
         'PORT': '5432',                                     # Set to empty string for default. Not used with sqlite3.
     },
