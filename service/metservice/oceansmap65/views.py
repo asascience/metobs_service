@@ -412,6 +412,7 @@ def gettimeseriescurrentsimage(request):
     from matplotlib.backends.backend_agg import FigureCanvasAgg
     import matplotlib.gridspec as gridspec
     from dateutil import parser
+    np.seterr(divide='ignore', invalid='ignore')
 
     attr = request.GET['attr']
     stationID = request.GET['st']
@@ -482,7 +483,6 @@ def gettimeseriescurrentsimage(request):
         if len(rows_json)<1:
             continue
 
-        dpthtics.append(int(d)*-1)
         for row in rows_json:            
             
             if(row[1] is None):
@@ -496,28 +496,31 @@ def gettimeseriescurrentsimage(request):
                 tarray.append(parser.parse(row[0]))
                 dsarray.append([row[1],row[2]])
         
-        data = np.array(dsarray, dtype=np.float)
-        
-        speeds  = data[:,0]
-        directions  = data[:,1]
-        
-        #times = range(len(speeds))
-        label_scale = 10
-        #unit_label = "%3g %s"%(label_scale, "cm/s")
-        unit_label = "cm/s"
-        
-        y = (int(d)*-1)
-        dir_rad = directions / 180. * np.pi
-        u = np.sin(dir_rad) * speeds
-        v = np.cos(dir_rad) * speeds
+        #this is to check for null or 999 data
+        if (len(dsarray)>0):
+            
+            dpthtics.append(int(d)*-1)
+            data = np.array(dsarray, dtype=np.float)
+            
+            speeds  = data[:,0]
+            directions  = data[:,1]
+            
+            #times = range(len(speeds))
+            label_scale = 10
+            #unit_label = "%3g %s"%(label_scale, "cm/s")
+            unit_label = "cm/s"
+            
+            y = (int(d)*-1)
+            dir_rad = directions / 180. * np.pi
+            u = np.sin(dir_rad) * speeds
+            v = np.cos(dir_rad) * speeds
 
-        C = np.sqrt(speeds**1)
-        
-        time, u, v = map(np.asanyarray, (tarray, u, v))
+            C = np.sqrt(speeds**1)
+            
+            time, u, v = map(np.asanyarray, (tarray, u, v))
 
-        Q = ax.quiver(date2num(time), y, u, v, C, **props)
-        ax.quiverkey(Q, X=.9, Y=.9999, U=label_scale, label=unit_label, labelpos='S',coordinates='axes',fontproperties={'size': 'small'})
-    
+            Q = ax.quiver(date2num(time), y, u, v, C, **props)
+            ax.quiverkey(Q, X=.9, Y=.9999, U=label_scale, label=unit_label, labelpos='S',coordinates='axes',fontproperties={'size': 'small'})
 
     curs.close()
     
