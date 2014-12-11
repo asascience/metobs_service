@@ -418,11 +418,14 @@ def gettimeseriescurrentsimage(request):
     stationID = request.GET['st']
     startTime = request.GET['starttime'].upper()
     endTime = request.GET['endtime'].upper()
-    dpth = request.GET['d'].split(',')
+    dpth = request.GET['d'].split(',');
+    
+
     try:
         wd = request.GET['w']
         ht = request.GET['h']
         mode = request.GET['y']
+        sampledata = request.GET['samp'];
         if wd == '':
             wd = 900
             ht = 500        
@@ -430,6 +433,7 @@ def gettimeseriescurrentsimage(request):
         wd = 900
         ht = 500  
         mode = 'surface'
+        sampledata = 'true';
     
     #default to current speed and direction 
     param = 'value1,value2';
@@ -471,7 +475,10 @@ def gettimeseriescurrentsimage(request):
         if d == '':
             continue
 
-        curs.execute("select collection_date,  "+param+ " from data.data_values_1h where station_id="+stationID+" and collection_date > '"+ startTime +"' and collection_date < '"+ endTime+ "' and depth ="+d+";");
+        if(sampledata == 'true'):
+            curs.execute("select collection_date,  "+param+ " from data.data_values_1h where station_id="+stationID+" and collection_date > '"+ startTime +"' and collection_date < '"+ endTime+ "' and depth ="+d+";");
+        else:
+            curs.execute("select collection_date,  "+param+ " from data.data_values where station_id="+stationID+" and collection_date > '"+ startTime +"' and collection_date < '"+ endTime+ "' and depth ="+d+";");
                 
         rows_serial = json.dumps(curs.fetchall(), cls=DjangoJSONEncoder);
         rows_json = json.loads(rows_serial)
@@ -609,6 +616,11 @@ def gettimeseries(request):
     startTime = request.GET['starttime'].upper()
     endTime = request.GET['endtime'].upper()
     mode = request.GET['y']
+
+    try:
+        sampledata = request.GET['samp'];  
+    except:
+        sampledata = 'true';
     
     #check for multiple properties
     #this is to make the sql query look something like value1,value2,value3
@@ -644,8 +656,11 @@ def gettimeseries(request):
             #just anadarko now
             clientID = 1;
 
-            curs.execute("select collection_date, depth "+param+ " from data.data_values_1h where station_id="+stationID+" and collection_date > '"+ startTime +"' and collection_date < '"+ endTime+ "';");
-                            
+            if(sampledata == 'true'):
+                curs.execute("select collection_date, depth "+param+ " from data.data_values_1h where station_id="+stationID+" and collection_date > '"+ startTime +"' and collection_date < '"+ endTime+ "';");
+            else:
+                curs.execute("select collection_date, depth "+param+ " from data.data_values where station_id="+stationID+" and collection_date > '"+ startTime +"' and collection_date < '"+ endTime+ "';");                            
+
             rows_serial = json.dumps(curs.fetchall(), cls=DjangoJSONEncoder);
             rows_json = json.loads(rows_serial)
             
@@ -774,8 +789,8 @@ def getvalues(request):
         
     tsData = []
     
-    curs.execute("select station_id,depth,value3,value4,value5,value6,value7,value8,value9,value10,value11,value12,value13,value14,value15,value16,value17,value18,value19,value20,value21,value22,value23,value24,value25,value26 from data.data_values_1h where collection_date = '"+ curTime +"';");
-            
+    curs.execute("select station_id,depth,value3,value4,value5,value6,value7,value8,value9,value10,value11,value12,value13,value14,value15,value16,value17,value18,value19,value20,value21,value22,value23,value24,value25,value26,value2,value1 from data.data_values where depth < 26 and collection_date = '"+ curTime +"' order by station_id,depth;");
+    
     rows_serial = json.dumps(curs.fetchall(), cls=DjangoJSONEncoder);
     curs.close()
     #pgconn.close()
@@ -785,12 +800,27 @@ def getvalues(request):
     objects_output = [];
     collection_list= ordereddict.OrderedDict();
 
-    for row in rows_json:            
+    for row in rows_json:
+
         stationblock = ordereddict.OrderedDict();
+        #filter out the duplicate values at depth and choose the closest to the surface
+        if(len(objects_output)>0):
+            prev = objects_output[-1];         
+            if(prev['sid'] == row[0]):
+                if(prev['Depth']< row[1]):
+                    objects_output.pop();
+                else:
+                    #add variables to block
+                    objects_output.pop();
+                    stationblock = prev;
 
         stationblock['sid'] = row[0];
-        stationblock['Depth'] = str(row[1]) + ' m';
+        stationblock['Depth'] = row[1];
 
+        if(row[26] is not None):
+            stationblock['Current Direction'] = round(float(row[26]),2)
+        if(row[27] is not None):
+            stationblock['Current Speed'] = round(float(row[27]),2)
         if(row[2] is not None):
             stationblock['Pressure'] = str(round(float(row[2]),2)) + ' mBar'
         if(row[3] is not None):
