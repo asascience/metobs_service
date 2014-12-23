@@ -463,11 +463,13 @@ def gettimeseriescurrentsimage(request):
          'headwidth': 0,
          'headlength': 0,
          'headaxislength': 0,
-         'scale' : .7,
          'cmap': cmap
          }
     
+    # this scale included in the properties above will change the tail height based on depth values
+    #'scale' : .7,
     dpthtics = []
+    allspeeds = []
 
     #iterate through depths
     for d in dpth:
@@ -509,13 +511,14 @@ def gettimeseriescurrentsimage(request):
             dpthtics.append(int(d)*-1)
             data = np.array(dsarray, dtype=np.float)
             
-            speeds  = data[:,0]
-            directions  = data[:,1]
+            speeds = data[:,0]
+            allspeeds.extend(speeds)
+            directions = data[:,1]
             
             #times = range(len(speeds))
             label_scale = 10
             #unit_label = "%3g %s"%(label_scale, "cm/s")
-            unit_label = "cm/s"
+            unit_label = "Units: cm/s"
             
             y = (int(d)*-1)
             dir_rad = directions / 180. * np.pi
@@ -558,7 +561,7 @@ def gettimeseriescurrentsimage(request):
 
         # legend
         ax1 = fig.add_axes([0.904, .31, 0.02, 0.377])
-        norm = mpl.colors.Normalize(vmin=min(speeds), vmax=max(speeds))
+        norm = mpl.colors.Normalize(vmin=min(allspeeds), vmax=max(allspeeds))
         cb1 = mpl.colorbar.ColorbarBase(ax1, cmap=cmap,
                                    norm=norm,
                                    orientation='vertical')
